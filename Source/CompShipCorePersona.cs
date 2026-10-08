@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using RimWorld;
-using UnityEngine;
 using Verse;
 using Verse.AI;
 
@@ -26,8 +25,6 @@ namespace ShipCorePersona
     /// </summary>
     public class CompShipCorePersona : ThingComp, IThingHolder
     {
-        private const float MechCommandRange = 24.9f;
-
         private ThingOwner<Pawn> inner;
         private Pawn linked;
         private List<string> retrievals = new List<string>();
@@ -184,16 +181,6 @@ namespace ShipCorePersona
             {
                 Log.ErrorOnce("[ShipCorePersona] 飞船主脑执行工作时出错：" + ex, persona.thingIDNumber ^ 0x51C0);
             }
-        }
-
-        public override void PostDraw()
-        {
-            base.PostDraw();
-            Pawn persona = Persona;
-            if (persona?.mechanitor == null || !parent.Spawned || !DraftedMechSelected(persona))
-                return;
-
-            GenDraw.DrawRadiusRing(persona.Position, MechCommandRange, Color.white, cell => persona.mechanitor.CanCommandTo(cell));
         }
 
         public override IEnumerable<FloatMenuOption> CompFloatMenuOptions(Pawn selPawn)
@@ -378,18 +365,6 @@ namespace ShipCorePersona
                 return new FloatMenuOption(label + ": " + "NoPath".Translate().CapitalizeFirst(), null);
 
             return new FloatMenuOption(label, action);
-        }
-
-        private static bool DraftedMechSelected(Pawn persona)
-        {
-            List<Pawn> selected = Find.Selector.SelectedPawns;
-            for (int i = 0; i < selected.Count; i++)
-            {
-                if (selected[i].Drafted && selected[i].GetOverseer() == persona)
-                    return true;
-            }
-
-            return false;
         }
 
         private void PlaceBesideCore()

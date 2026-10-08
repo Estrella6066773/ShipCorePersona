@@ -141,13 +141,19 @@ namespace ShipCorePersona
 
     /// <summary>
     /// 飞船主脑不在地图上画出来。她仍生成在飞船电脑核心所占的格子上，能力用那个格子计算距离。
+    /// 原版的机械族指挥范围画在这一步里，跳过绘制时要把范围单独画出来。
     /// </summary>
     [HarmonyPatch(typeof(Pawn), nameof(Pawn.DynamicDrawPhaseAt))]
     public static class Patch_PersonaHidden
     {
-        public static bool Prefix(Pawn __instance)
+        public static bool Prefix(Pawn __instance, DrawPhase phase)
         {
-            return !CorePersonaUtility.IsPersona(__instance);
+            if (!CorePersonaUtility.IsPersona(__instance))
+                return true;
+
+            if (phase == DrawPhase.Draw)
+                __instance.mechanitor?.DrawCommandRadius();
+            return false;
         }
     }
 
