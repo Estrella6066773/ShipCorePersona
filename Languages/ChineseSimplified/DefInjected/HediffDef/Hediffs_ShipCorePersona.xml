@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ShipCorePersonaBound.label>驻留在电脑核心中</ShipCorePersonaBound.label>
+  <ShipCorePersonaBound.description>这个人是飞船电脑核心的机器人格，一直待在核心里面，不能行走，也不能做普通工作。远程修理机械族时，使用这个人的铸造技能。</ShipCorePersonaBound.description>
+
+  <ShipCorePersonaBandwidth.label>核心人格带宽</ShipCorePersonaBandwidth.label>
+  <ShipCorePersonaBandwidth.description>飞船电脑核心额外提供的机械族带宽。与机械链路自带的 6 点相加，这个人格一共有 20 点带宽。</ShipCorePersonaBandwidth.description>
+
+  <ShipCorePersonaChipOffset.label>核心带宽校正</ShipCorePersonaChipOffset.label>
+  <ShipCorePersonaChipOffset.description>人格芯片已经提供 20 点带宽时，扣掉机械链路多出来的 6 点，使合计仍是 20 点。</ShipCorePersonaChipOffset.description>
+</LanguageData>

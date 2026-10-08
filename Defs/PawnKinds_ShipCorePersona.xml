@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <PawnKindDef>
+    <defName>ShipCorePersona</defName>
+    <label>ship core persona</label>
+    <labelPlural>ship core personas</labelPlural>
+    <race>Human</race>
+    <combatPower>40</combatPower>
+    <chemicalAddictionChance>0</chemicalAddictionChance>
+    <apparelIgnoreSeasons>true</apparelIgnoreSeasons>
+    <forceNormalGearQuality>true</forceNormalGearQuality>
+    <backstoryCryptosleepCommonality>0</backstoryCryptosleepCommonality>
+    <defaultFactionType>PlayerColony</defaultFactionType>
+  </PawnKindDef>
+
+</Defs>

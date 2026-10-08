@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+  <Operation Class="PatchOperationAdd">
+    <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/comps</xpath>
+    <value>
+      <li Class="ShipCorePersona.CompProperties_ShipCorePersona" />
+    </value>
+  </Operation>
+
+  <!-- 去掉「不能盖在屋顶下」。室内和逆重飞船舱内都可以放置。 -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/placeWorkers/li[text()="PlaceWorker_NotUnderRoof"]</xpath>
+    <match Class="PatchOperationRemove">
+      <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/placeWorkers/li[text()="PlaceWorker_NotUnderRoof"]</xpath>
+    </match>
+  </Operation>
+
+  <!-- 原版只要求承重地面，逆重飞船地板没有这个承重标记。改成空，再由 PlaceWorker 同时接受两种地面。 -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/terrainAffordanceNeeded</xpath>
+    <match Class="PatchOperationRemove">
+      <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/terrainAffordanceNeeded</xpath>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/placeWorkers</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/placeWorkers</xpath>
+      <value>
+        <li>ShipCorePersona.PlaceWorker_ShipComputerCore</li>
+      </value>
+    </match>
+    <nomatch Class="PatchOperationAdd">
+      <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]</xpath>
+      <value>
+        <placeWorkers>
+          <li>ShipCorePersona.PlaceWorker_ShipComputerCore</li>
+        </placeWorkers>
+      </value>
+    </nomatch>
+  </Operation>
+
+  <!-- 还没有逆重设施时才加。Gravship Voyage 若已加上驾驶台组件，这里不重复加。不占用驾驶台的控制槽。 -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/comps/li[@Class="CompProperties_GravshipFacility" or compClass="CompPilotConsole"]</xpath>
+    <nomatch Class="PatchOperationAdd">
+      <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/comps</xpath>
+      <value>
+        <li Class="CompProperties_GravshipFacility">
+          <requiresLOS>false</requiresLOS>
+          <showMaxSimultaneous>false</showMaxSimultaneous>
+          <maxSimultaneous>1</maxSimultaneous>
+          <maxDistance>500</maxDistance>
+        </li>
+      </value>
+    </nomatch>
+  </Operation>
+
+  <!-- 和休眠仓一样：核心被点选时，可以再点选里面的人。 -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]</xpath>
+    <value>
+      <containedPawnsSelectable>true</containedPawnsSelectable>
+    </value>
+  </Operation>
+
+</Patch>

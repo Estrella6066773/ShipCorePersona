@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>飞船核心人格 (Ship Core Persona)</name>
+  <author>Estrella6066</author>
+  <packageId>Estrella6066.ShipCorePersona</packageId>
+  <modVersion>1.0.0</modVersion>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>飞船电脑核心里的机器人格会成为一个可以点选的角色，并作为机械师控制机械族。
+
+这个角色住在电脑核心里面，像住在死眠棺材或休眠仓里的人一样，不会自己走出来。点选电脑核心，再点选其中的人格，就能看到固定的头像，而不是随机生成的外貌。
+
+人格可以做的事：
+• 被征召。征召之后不能移动，也不能执行移动、射击或普通工作。
+• 接受手术，而且手术清单里只有机械师植入体。远程修理需要医生把远程修理器装进这个人格。
+• 装上远程修理器之后，用远程修理能力修理自己控制的机械族。修理速度只看铸造技能。
+• 拥有 20 点机械族带宽。铸造技能为 10，其他技能为 0。
+
+本模组不依赖 Gravship Voyage。如果那个模组也启用了，它原来塞进电脑核心的随机隐藏机械师会被这里的人格替换，头像、征召、手术和远程修理都走这个人格。把人格芯片取出来交给殖民者时，仍按那个模组自己的规则把机械族控制权交出去。
+
+驾驶台不会因此变成第二个机械师。
+
+电脑核心可以盖在屋顶下面，也能放在能承重的地面上。只有整座建筑都在某一艘逆重飞船的地板上时，才会连上那艘飞船。其他模组添加的逆重引擎，只要本身会连接逆重设施，也会把电脑核心算进去。
+
+需要生物科技和 Harmony。</description>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+      <downloadUrl>https://github.com/pardeike/HarmonyRimWorld/releases/latest</downloadUrl>
+    </li>
+    <li>
+      <packageId>Ludeon.RimWorld.Biotech</packageId>
+      <displayName>Biotech</displayName>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>brrainz.harmony</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Odyssey</li>
+    <li>asunib.GravshipVoyage</li>
+  </loadAfter>
+</ModMetaData>
