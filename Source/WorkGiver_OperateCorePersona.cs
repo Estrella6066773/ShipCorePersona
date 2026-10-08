@@ -5,11 +5,7 @@ using Verse.AI;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 让医生给住在电脑核心里的人格做手术。
-    ///
-    /// 联动关系：手术清单存在人格的 health.surgeryBills 上，不在核心建筑上。
-    /// 材料一次搬一件进医生背包；都齐了之后，<see cref="JobDriver_OperateCorePersona"/> 才在核心旁边动手。
-    /// 核心是实心建筑，医生走到贴着它的格子，不会要求人格自己躺到床上。
+    /// 医生给飞船主脑做手术。材料先放进医生背包，齐了才在核心旁边动手。
     /// </summary>
     public class WorkGiver_OperateCorePersona : WorkGiver_Scanner
     {

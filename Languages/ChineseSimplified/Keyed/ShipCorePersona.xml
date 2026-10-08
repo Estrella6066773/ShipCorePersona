@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <ShipCorePersona_Inspect>{0}住在这台电脑核心里。机械族带宽 {1}/{2}。铸造技能用于远程修理。</ShipCorePersona_Inspect>
-  <ShipCorePersona_InspectDormant>{0}住在这台电脑核心里。人格芯片目前不在核心中，机械族控制权跟着芯片走。</ShipCorePersona_InspectDormant>
-  <ShipCorePersona_Draft>征召人格</ShipCorePersona_Draft>
-  <ShipCorePersona_DraftDesc>征召住在电脑核心里的人格。人格不能移动，也不能执行移动、射击或普通工作。要征召机械族，请直接点选机械族。</ShipCorePersona_DraftDesc>
+  <ShipCorePersona_Draft>征召</ShipCorePersona_Draft>
+  <ShipCorePersona_DraftDesc>征召这台飞船电脑核心里的飞船主脑。她不能移动。</ShipCorePersona_DraftDesc>
   <ShipCorePersona_MissingIngredient>缺少手术材料</ShipCorePersona_MissingIngredient>
-  <ShipCorePersona_NeedsHeavyOrSubstructure>必须放在能承重的地面，或逆重飞船的地板上</ShipCorePersona_NeedsHeavyOrSubstructure>
+  <ShipCorePersona_NeedsHeavyOrSubstructure>必须放在重型地面上，或放在逆重飞船基架上</ShipCorePersona_NeedsHeavyOrSubstructure>
+  <ShipCorePersona_StoreImplant>放入{0}</ShipCorePersona_StoreImplant>
+  <ShipCorePersona_RetrieveImplant>取出{0}</ShipCorePersona_RetrieveImplant>
 </LanguageData>

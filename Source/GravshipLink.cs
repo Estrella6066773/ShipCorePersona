@@ -6,15 +6,8 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 把飞船电脑核心登记进各艘逆重引擎的可连接设施。
-    /// 原版引擎和会连接逆重设施的模组引擎都会被扫到，不写死引擎 defName。
-    ///
-    /// 联动关系：由 <see cref="ModEntry"/> 在定义加载完成后调用 <see cref="Register"/>。
-    /// 真正能不能连上，还要过 <see cref="Patch_ShipComputerCoreLinksOnlyOnItsFloor"/>。
-    /// 若 Gravship Voyage 已经加过电脑核心，这里不会重复添加。
-    ///
-    /// 注意：必须在全部 XML 补丁跑完之后调用。只改定义上的名单，不改已经生成的存档物体；
-    /// 那些物体读的是同一份定义，所以旧档也会跟着生效。
+    /// 把飞船电脑核心登记进逆重引擎可以连接的设施。
+    /// 遍历会连接逆重设施的引擎，不把引擎的 defName 写死。定义加载完才能调用。
     /// </summary>
     public static class GravshipEngineWhitelist
     {
@@ -57,7 +50,7 @@ namespace ShipCorePersona
                 }
             }
 
-            // 不是逆重引擎，也不连接任何逆重设施的建筑，不要塞进电脑核心。
+            // 既不是逆重引擎、也不连接任何逆重设施的建筑，不要把飞船电脑核心加进它的可连接列表。
             if (!engineClass && !linksGravFacility)
                 return;
 
@@ -69,15 +62,8 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 电脑核心只有整座都站在某一艘逆重飞船的地板上时，才算连上那艘船。
-    ///
-    /// 联动关系：补丁挂在 <c>CompGravshipFacility.CanBeActive</c> 上。
-    /// 本模组或 Gravship Voyage 给电脑核心加上的逆重设施都会走到这里。
-    /// 引擎名单来自 <see cref="GravshipEngineWhitelist"/>。
-    ///
-    /// 注意：原版这个属性碰到第一台距离不够的引擎就会直接失败，多船或模组引擎时会连错、连不上。
-    /// 这里改成跳过距离不够的引擎，只接受占地每一格都属于那台引擎的飞船地板。
-    /// 松散连接不算。断电或故障（如果有这些组件）时也不算连上。
+    /// 整座飞船电脑核心都在那艘船的基架上，才算连上。
+    /// 原版碰到第一台距离不够的引擎就会直接判失败，这里要跳过那台引擎，继续看下一台。
     /// </summary>
     [HarmonyPatch(typeof(CompGravshipFacility), "get_CanBeActive")]
     public static class Patch_ShipComputerCoreLinksOnlyOnItsFloor

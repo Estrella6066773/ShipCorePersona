@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <ShipCorePersona_Inspect>{0} is housed in this computer core. Mech bandwidth {1}/{2}. Crafting skill is used for remote repair.</ShipCorePersona_Inspect>
-  <ShipCorePersona_InspectDormant>{0} is housed in this computer core. The persona chip is not seated, so mech control follows the chip.</ShipCorePersona_InspectDormant>
-  <ShipCorePersona_Draft>Draft persona</ShipCorePersona_Draft>
-  <ShipCorePersona_DraftDesc>Draft the persona housed in this computer core. They cannot move, shoot, or do ordinary work. Draft mechs by selecting the mechs themselves.</ShipCorePersona_DraftDesc>
+  <ShipCorePersona_Draft>Draft</ShipCorePersona_Draft>
+  <ShipCorePersona_DraftDesc>Draft the ship mind. The ship mind cannot move.</ShipCorePersona_DraftDesc>
   <ShipCorePersona_MissingIngredient>missing surgery materials</ShipCorePersona_MissingIngredient>
   <ShipCorePersona_NeedsHeavyOrSubstructure>must be placed on heavy terrain or gravship substructure</ShipCorePersona_NeedsHeavyOrSubstructure>
+  <ShipCorePersona_StoreImplant>store {0}</ShipCorePersona_StoreImplant>
+  <ShipCorePersona_RetrieveImplant>retrieve {0}</ShipCorePersona_RetrieveImplant>
 </LanguageData>

@@ -4,7 +4,7 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 本模组自己的 def。只在这里集中取用，避免各处手写字符串。
+    /// 本模组的定义。
     /// </summary>
     [DefOf]
     public static class ShipCorePersonaDefOf
@@ -14,6 +14,8 @@ namespace ShipCorePersona
         public static HediffDef ShipCorePersonaBandwidth;
         public static HediffDef ShipCorePersonaChipOffset;
         public static JobDef OperateShipCorePersona;
+        public static JobDef StoreShipCoreImplant;
+        public static JobDef RetrieveShipCoreImplant;
 
         static ShipCorePersonaDefOf()
         {

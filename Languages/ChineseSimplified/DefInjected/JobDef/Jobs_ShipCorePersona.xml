@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <OperateShipCorePersona.reportString>正在为{TargetA}里的人格做手术。</OperateShipCorePersona.reportString>
+  <OperateShipCorePersona.reportString>正在给{TargetA}里的飞船主脑做手术。</OperateShipCorePersona.reportString>
+  <StoreShipCoreImplant.reportString>正在把{TargetB}放进{TargetA}。</StoreShipCoreImplant.reportString>
+  <RetrieveShipCoreImplant.reportString>正在从{TargetA}里取出植入物。</RetrieveShipCoreImplant.reportString>
 </LanguageData>

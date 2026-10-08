@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
 
-  <!-- 标记这个人住在电脑核心里，并关掉移动和一切工作。 -->
+  <!-- 用来标记飞船主脑。不能把移动设成 0，否则原版会把她当成倒地并失去知觉，能力就放不出来。 -->
   <HediffDef>
     <defName>ShipCorePersonaBound</defName>
-    <hediffClass>Hediff</hediffClass>
+    <hediffClass>HediffWithComps</hediffClass>
     <label>housed in computer core</label>
-    <description>This person is the machine persona of a ship computer core. They remain inside the core, cannot walk, and cannot perform ordinary work. Their Crafting skill is what remote mech repair uses.</description>
+    <description>An artificial intelligence housed in a ship computer core. She appears as a hologram.</description>
     <isBad>false</isBad>
     <everCurableByItem>false</everCurableByItem>
+    <comps>
+      <li Class="HediffCompProperties_Invisibility">
+        <visibleToPlayer>true</visibleToPlayer>
+        <fadeDurationTicks>1</fadeDurationTicks>
+        <affectedByDisruptor>false</affectedByDisruptor>
+      </li>
+    </comps>
     <stages>
       <li>
         <hungerRateFactor>0</hungerRateFactor>
         <restFallFactor>0</restFallFactor>
         <painFactor>0</painFactor>
         <overrideMoodBase>0.55</overrideMoodBase>
-        <disabledWorkTags>AllWork</disabledWorkTags>
-        <capMods>
-          <li>
-            <capacity>Moving</capacity>
-            <setMax>0</setMax>
-          </li>
-        </capMods>
       </li>
     </stages>
   </HediffDef>
 
-  <!-- 机械链路自带 6 点带宽，这里再补 14 点，合计 20。 -->
+  <!-- 机控中枢自带 6 点机械带宽，这里再补 14 点，合计 20 点。 -->
   <HediffDef>
     <defName>ShipCorePersonaBandwidth</defName>
     <hediffClass>Hediff</hediffClass>
     <label>core persona bandwidth</label>
-    <description>Extra mechanoid bandwidth granted by the ship computer core. Together with the mechlink, this persona has 20 bandwidth.</description>
+    <description>Together with the mechlink, this is 20 mech bandwidth.</description>
     <isBad>false</isBad>
     <everCurableByItem>false</everCurableByItem>
     <stages>
@@ -44,19 +44,20 @@
   </HediffDef>
 
   <!--
-    Gravship Voyage 的人格芯片自己提供 20 点带宽。
-    机械链路仍要留着，否则卸掉它会强制断开机械族。
-    因此在芯片也在的时候，用 -6 把机械链路多出来的 6 点扣回去。
+    Gravship Voyage 的人格芯片自己提供 20 点机械带宽。
+    机控中枢仍要留着，卸掉它会强制断开机械族。
+    芯片也在的时候，用 -6 把机控中枢多出来的 6 点扣回去。
   -->
   <HediffDef>
     <defName>ShipCorePersonaChipOffset</defName>
     <hediffClass>Hediff</hediffClass>
     <label>core bandwidth adjustment</label>
-    <description>Cancels the mechlink's 6 bandwidth while a persona chip is also granting 20, so the total stays 20.</description>
+    <description>Adjusts mech bandwidth.</description>
     <isBad>false</isBad>
     <everCurableByItem>false</everCurableByItem>
     <stages>
       <li>
+        <becomeVisible>false</becomeVisible>
         <statOffsets>
           <MechBandwidth>-6</MechBandwidth>
         </statOffsets>

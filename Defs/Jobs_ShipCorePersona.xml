@@ -8,6 +8,20 @@
     <casualInterruptible>false</casualInterruptible>
   </JobDef>
 
+  <JobDef>
+    <defName>StoreShipCoreImplant</defName>
+    <driverClass>ShipCorePersona.JobDriver_StoreCoreImplant</driverClass>
+    <reportString>storing TargetB in TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
+    <defName>RetrieveShipCoreImplant</defName>
+    <driverClass>ShipCorePersona.JobDriver_RetrieveCoreImplant</driverClass>
+    <reportString>retrieving an implant from TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
   <WorkGiverDef>
     <defName>OperateShipCorePersona</defName>
     <label>operate on ship core persona</label>

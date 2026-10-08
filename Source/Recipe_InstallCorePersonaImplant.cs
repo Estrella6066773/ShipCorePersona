@@ -6,14 +6,8 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 只允许给核心人格安装机械师植入体，并且按植入体自己的等级上限升级。
-    ///
-    /// 联动关系：健康页能列出哪些手术，先看本方法的 AvailableOnNow，
-    /// 再由 <see cref="Patch_SurgeryOnlyImplants"/> 把其他手术从核心人格身上拿掉。
-    /// 真正动手的是 <see cref="JobDriver_OperateCorePersona"/>，它调用 ApplyOnPawn。
-    ///
-    /// 注意：标准控制子链最高 3 级，高级子链从 3 级继续加到 6 级，和原版自安装规则一致。
-    /// 其他植入体的上限用健康状态自己的 maxSeverity。
+    /// 用手术给飞船主脑安装机械师植入物。
+    /// 标准控制子链加到 3 级为止；高级控制子链从 3 级加到上限。规则与原版自行安装相同。
     /// </summary>
     public class Recipe_InstallCorePersonaImplant : Recipe_Surgery
     {

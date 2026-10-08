@@ -16,7 +16,7 @@
     </match>
   </Operation>
 
-  <!-- 原版只要求承重地面，逆重飞船地板没有这个承重标记。改成空，再由 PlaceWorker 同时接受两种地面。 -->
+  <!-- 原版只接受重型地面。逆重飞船基架没有重型这个标记。先把地面要求去掉，再由 PlaceWorker 同时接受这两种地面。 -->
   <Operation Class="PatchOperationConditional">
     <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/terrainAffordanceNeeded</xpath>
     <match Class="PatchOperationRemove">
@@ -42,7 +42,7 @@
     </nomatch>
   </Operation>
 
-  <!-- 还没有逆重设施时才加。Gravship Voyage 若已加上驾驶台组件，这里不重复加。不占用驾驶台的控制槽。 -->
+  <!-- 飞船电脑核心还没有逆重设施组件时才加。Gravship Voyage 若已经加上驾驶台组件，这里不重复加。不占用驾驶台的控制槽。 -->
   <Operation Class="PatchOperationConditional">
     <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/comps/li[@Class="CompProperties_GravshipFacility" or compClass="CompPilotConsole"]</xpath>
     <nomatch Class="PatchOperationAdd">
@@ -58,7 +58,7 @@
     </nomatch>
   </Operation>
 
-  <!-- 和休眠仓一样：核心被点选时，可以再点选里面的人。 -->
+  <!-- 和休眠舱一样：选中核心时，可以再选中里面的人。 -->
   <Operation Class="PatchOperationAdd">
     <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]</xpath>
     <value>

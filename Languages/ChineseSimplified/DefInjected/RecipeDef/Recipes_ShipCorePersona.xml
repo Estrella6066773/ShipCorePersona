@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <ShipCorePersona_InstallControlSublink.label>安装控制子链（标准）</ShipCorePersona_InstallControlSublink.label>
-  <ShipCorePersona_InstallControlSublink.description>为飞船电脑核心里的人格安装标准控制子链。标准子链最多把控制组提高到 3 组。</ShipCorePersona_InstallControlSublink.description>
+  <ShipCorePersona_InstallControlSublink.description>给飞船主脑安装标准控制子链。标准控制子链最多把控制组加到 3 组。</ShipCorePersona_InstallControlSublink.description>
   <ShipCorePersona_InstallControlSublink.jobString>正在安装控制子链。</ShipCorePersona_InstallControlSublink.jobString>
 
   <ShipCorePersona_InstallControlSublinkHigh.label>安装控制子链（高级）</ShipCorePersona_InstallControlSublinkHigh.label>
-  <ShipCorePersona_InstallControlSublinkHigh.description>为飞船电脑核心里的人格安装高级控制子链。需要已有 3 级标准子链，之后最高到 6 组。</ShipCorePersona_InstallControlSublinkHigh.description>
+  <ShipCorePersona_InstallControlSublinkHigh.description>给飞船主脑安装高级控制子链。她装过 3 级标准控制子链之后，高级控制子链才能继续把控制组加到 6 组。</ShipCorePersona_InstallControlSublinkHigh.description>
   <ShipCorePersona_InstallControlSublinkHigh.jobString>正在安装高级控制子链。</ShipCorePersona_InstallControlSublinkHigh.jobString>
 
-  <ShipCorePersona_InstallRemoteRepairer.label>安装远程修理器</ShipCorePersona_InstallRemoteRepairer.label>
-  <ShipCorePersona_InstallRemoteRepairer.description>为飞船电脑核心里的人格安装远程修理器。装好之后，人格可以在核心里远程修理自己的机械族，修理速度由铸造技能决定。</ShipCorePersona_InstallRemoteRepairer.description>
-  <ShipCorePersona_InstallRemoteRepairer.jobString>正在安装远程修理器。</ShipCorePersona_InstallRemoteRepairer.jobString>
+  <ShipCorePersona_InstallRemoteRepairer.label>安装远程维修模块</ShipCorePersona_InstallRemoteRepairer.label>
+  <ShipCorePersona_InstallRemoteRepairer.description>给飞船主脑安装远程维修模块。装好之后，她待在飞船电脑核心里，也能远程维修自己的机械族。维修速度由她的手工决定。</ShipCorePersona_InstallRemoteRepairer.description>
+  <ShipCorePersona_InstallRemoteRepairer.jobString>正在安装远程维修模块。</ShipCorePersona_InstallRemoteRepairer.jobString>
 
-  <ShipCorePersona_InstallRemoteShielder.label>安装远程护盾器</ShipCorePersona_InstallRemoteShielder.label>
-  <ShipCorePersona_InstallRemoteShielder.description>为飞船电脑核心里的人格安装远程护盾器。</ShipCorePersona_InstallRemoteShielder.description>
-  <ShipCorePersona_InstallRemoteShielder.jobString>正在安装远程护盾器。</ShipCorePersona_InstallRemoteShielder.jobString>
+  <ShipCorePersona_InstallRemoteShielder.label>安装远程护盾模块</ShipCorePersona_InstallRemoteShielder.label>
+  <ShipCorePersona_InstallRemoteShielder.description>给飞船主脑安装远程护盾模块。</ShipCorePersona_InstallRemoteShielder.description>
+  <ShipCorePersona_InstallRemoteShielder.jobString>正在安装远程护盾模块。</ShipCorePersona_InstallRemoteShielder.jobString>
 
-  <ShipCorePersona_InstallMechFormfeeder.label>安装机械族妊娠处理器</ShipCorePersona_InstallMechFormfeeder.label>
-  <ShipCorePersona_InstallMechFormfeeder.description>为飞船电脑核心里的人格安装机械族妊娠处理器。</ShipCorePersona_InstallMechFormfeeder.description>
-  <ShipCorePersona_InstallMechFormfeeder.jobString>正在安装机械族妊娠处理器。</ShipCorePersona_InstallMechFormfeeder.jobString>
+  <ShipCorePersona_InstallMechFormfeeder.label>安装机械培育处理器</ShipCorePersona_InstallMechFormfeeder.label>
+  <ShipCorePersona_InstallMechFormfeeder.description>给飞船主脑安装机械培育处理器。</ShipCorePersona_InstallMechFormfeeder.description>
+  <ShipCorePersona_InstallMechFormfeeder.jobString>正在安装机械培育处理器。</ShipCorePersona_InstallMechFormfeeder.jobString>
 
-  <ShipCorePersona_InstallRepairProbe.label>安装修理探针</ShipCorePersona_InstallRepairProbe.label>
-  <ShipCorePersona_InstallRepairProbe.description>为飞船电脑核心里的人格安装修理探针，提高修理机械族的速度。</ShipCorePersona_InstallRepairProbe.description>
-  <ShipCorePersona_InstallRepairProbe.jobString>正在安装修理探针。</ShipCorePersona_InstallRepairProbe.jobString>
+  <ShipCorePersona_InstallRepairProbe.label>安装维修探针</ShipCorePersona_InstallRepairProbe.label>
+  <ShipCorePersona_InstallRepairProbe.description>给飞船主脑安装维修探针。装上之后，她维修机械族的速度会提高。</ShipCorePersona_InstallRepairProbe.description>
+  <ShipCorePersona_InstallRepairProbe.jobString>正在安装维修探针。</ShipCorePersona_InstallRepairProbe.jobString>
 </LanguageData>

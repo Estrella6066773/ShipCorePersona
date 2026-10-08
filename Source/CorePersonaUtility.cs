@@ -6,15 +6,9 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 判断「这个人是不是住在电脑核心里的人格」，以及带宽该怎么叠。
-    ///
-    /// 联动关系：
-    /// 电脑核心上的 <see cref="CompShipCorePersona"/> 持有这个人。
-    /// 征召、手术、远程修理的补丁都通过这里确认目标，避免误伤普通殖民者。
-    /// Gravship Voyage 的人格芯片如果也装在这个人身上，带宽改由芯片提供的 20 点负责，
-    /// 机械链路自带的 6 点用校正健康状态扣回，合计仍是 20。
-    ///
-    /// 注意：不要为了扣掉那 6 点而移除机械链路。机械链路一移除，原版会立刻断开全部机械族。
+    /// 认出飞船主脑，并把机械带宽维持在 20 点。
+    /// 玩家自己取出机控中枢之后，不要自动装回去。
+    /// 除此之外不要卸掉机控中枢，卸掉会断开她和机械族的联系。
     /// </summary>
     public static class CorePersonaUtility
     {
@@ -29,6 +23,21 @@ namespace ShipCorePersona
         {
             if (pawn?.ParentHolder is ThingOwner owner && owner.Owner is CompShipCorePersona comp)
                 return comp.parent;
+            if (pawn == null || !pawn.Spawned)
+                return null;
+
+            ThingDef coreDef = DefDatabase<ThingDef>.GetNamedSilentFail("Ship_ComputerCore");
+            if (coreDef == null)
+                return null;
+
+            List<Thing> cores = pawn.Map.listerThings.ThingsOfDef(coreDef);
+            for (int i = 0; i < cores.Count; i++)
+            {
+                CompShipCorePersona onCore = cores[i].TryGetComp<CompShipCorePersona>();
+                if (onCore?.Persona == pawn)
+                    return cores[i];
+            }
+
             return null;
         }
 
@@ -38,10 +47,6 @@ namespace ShipCorePersona
             return chip != null && pawn?.health?.hediffSet?.HasHediff(chip) == true;
         }
 
-        /// <summary>
-        /// 按当前有没有 Voyage 人格芯片，把带宽来源收成合计 20 点。
-        /// 芯片不在核心里时，这个人格不再担任机械师，控制权留给拿着芯片的人。
-        /// </summary>
         public static void SyncBandwidth(Pawn persona, Thing core)
         {
             if (persona?.health == null)
@@ -50,16 +55,19 @@ namespace ShipCorePersona
             bool voyageLoaded = VoyageCompat.IsLoaded;
             bool chipOnPersona = HasVoyageChip(persona);
             bool chipSeatedInCore = voyageLoaded && VoyageCompat.ChipSeated(core);
+            bool mechlinkTakenOut = core?.TryGetComp<CompShipCorePersona>()?.MechlinkTakenOut == true;
 
-            if (chipOnPersona)
-            {
+            if (!mechlinkTakenOut && (chipOnPersona || !voyageLoaded || chipSeatedInCore))
                 EnsureHediff(persona, HediffDefOf.MechlinkImplant, onBrain: true);
+
+            bool hasMechlink = persona.health.hediffSet.HasHediff(HediffDefOf.MechlinkImplant);
+            if (chipOnPersona && hasMechlink)
+            {
                 EnsureHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaChipOffset, onBrain: false);
                 RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaBandwidth);
             }
-            else if (!voyageLoaded || chipSeatedInCore)
+            else if (hasMechlink && (!voyageLoaded || chipSeatedInCore))
             {
-                EnsureHediff(persona, HediffDefOf.MechlinkImplant, onBrain: true);
                 EnsureHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaBandwidth, onBrain: false);
                 RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaChipOffset);
             }
@@ -67,7 +75,8 @@ namespace ShipCorePersona
             {
                 RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaBandwidth);
                 RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaChipOffset);
-                RemoveHediff(persona, HediffDefOf.MechlinkImplant);
+                if (voyageLoaded && !chipSeatedInCore && !chipOnPersona)
+                    RemoveHediff(persona, HediffDefOf.MechlinkImplant);
             }
 
             PawnComponentsUtility.AddAndRemoveDynamicComponents(persona, false);

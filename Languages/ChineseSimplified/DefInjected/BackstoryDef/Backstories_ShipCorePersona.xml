@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+
+  <ShipCorePersona_Childhood.title>人格核心</ShipCorePersona_Childhood.title>
+  <ShipCorePersona_Childhood.titleShort>人格核心</ShipCorePersona_Childhood.titleShort>
+  <ShipCorePersona_Childhood.description>她来自一枚人格核心。</ShipCorePersona_Childhood.description>
+
+  <ShipCorePersona_Adulthood.title>飞船主脑</ShipCorePersona_Adulthood.title>
+  <ShipCorePersona_Adulthood.titleShort>飞船主脑</ShipCorePersona_Adulthood.titleShort>
+  <ShipCorePersona_Adulthood.description>她是人工智能，寄宿在飞船电脑核心里。</ShipCorePersona_Adulthood.description>
+
+</LanguageData>

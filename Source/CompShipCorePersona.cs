@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 
 namespace ShipCorePersona
 {
@@ -15,29 +16,38 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 把核心人格放进飞船电脑核心，方式和休眠仓放人相同：人在容器里，不生成到地图上。
-    ///
-    /// 联动关系：
-    /// 点选核心时，原版的「选择其中的人」按钮会画出这个人的头像。
-    /// 医生的手术工作由 <see cref="WorkGiver_OperateCorePersona"/> 找到这里的手术清单。
-    /// 远程修理的工作不会被地图 ticking，所以本组件在核心每次滴答时推动这个人当前的工作。
-    /// 带宽和机械链路的加减在 <see cref="CorePersonaUtility.SyncBandwidth"/>。
-    ///
-    /// 注意：
-    /// 这个人的 Position 要写成核心旁边一格能站立的格子。人并没有生成出来，
-    /// 但瞄准和距离用的是 Position 而不是容器位置；若写成核心自己那一格，实心建筑会挡住视线。
-    /// 核心被拆掉或摧毁时，人格一起消失，不会掉出一具尸体。
+    /// 飞船主脑生成在飞船电脑核心所占的格子上。绘制时用建筑中心，看起来人在建筑里面。
+    /// 她仍然生成在地图上，能力才能放出来。她保持清醒。
+    /// 不能把移动设成 0，否则原版会把她当成倒地、失去知觉。
+    /// 旧档里她还在容器中。读档后挪到旁边那一格。容器只用来迁旧档。
+    /// retrievals 的下标对应取出工作的 count，不能从中间删。
+    /// 人格核心离开建筑后，角色被去掉。storedImplants 留在建筑上，重新生成角色时再装回去。角色已经不在时不要清空这份记录。
     /// </summary>
     public class CompShipCorePersona : ThingComp, IThingHolder
     {
+        private const float MechCommandRange = 24.9f;
+
         private ThingOwner<Pawn> inner;
+        private Pawn linked;
+        private List<string> retrievals = new List<string>();
+        private List<StoredCoreImplant> storedImplants = new List<StoredCoreImplant>();
+
+        public bool MechlinkTakenOut;
 
         public CompShipCorePersona()
         {
             inner = new ThingOwner<Pawn>(this);
         }
 
-        public Pawn Persona => inner != null && inner.Count > 0 ? inner[0] : null;
+        public Pawn Persona
+        {
+            get
+            {
+                if (linked != null && !linked.Destroyed)
+                    return linked;
+                return inner != null && inner.Count > 0 ? inner[0] : null;
+            }
+        }
 
         public new IThingHolder ParentHolder => parent?.Map;
 
@@ -59,6 +69,15 @@ namespace ShipCorePersona
 
             EnsurePersona();
             PlaceBesideCore();
+            if (Persona != null)
+            {
+                PersonaAppearance.EnsureIdentity(Persona);
+                PersonaAppearance.EnsureBodyType(Persona);
+                PersonaAppearance.EnsureHologram(Persona);
+                PersonaAppearance.ApplyCoreName(Persona, parent);
+                Persona.Notify_DisabledWorkTypesChanged();
+                WakeIfDowned(Persona);
+            }
             CorePersonaUtility.SyncBandwidth(Persona, parent);
             VoyageCompat.ClaimHost(this);
         }
@@ -66,22 +85,45 @@ namespace ShipCorePersona
         public override void PostExposeData()
         {
             base.PostExposeData();
+            Scribe_References.Look(ref linked, "personaSpawned");
             Scribe_Deep.Look(ref inner, "personaContainer", this);
-            if (Scribe.mode == LoadSaveMode.LoadingVars && inner == null)
-                inner = new ThingOwner<Pawn>(this);
+            Scribe_Values.Look(ref MechlinkTakenOut, "mechlinkTakenOut", false);
+            Scribe_Collections.Look(ref retrievals, "implantRetrievals", LookMode.Value);
+            Scribe_Collections.Look(ref storedImplants, "storedImplants", LookMode.Deep);
+            if (Scribe.mode == LoadSaveMode.LoadingVars)
+            {
+                if (inner == null)
+                    inner = new ThingOwner<Pawn>(this);
+                if (retrievals == null)
+                    retrievals = new List<string>();
+                if (storedImplants == null)
+                    storedImplants = new List<StoredCoreImplant>();
+            }
+        }
+
+        public ThingDef RetrievalAt(int index)
+        {
+            if (retrievals == null || index < 0 || index >= retrievals.Count)
+                return null;
+            return DefDatabase<ThingDef>.GetNamedSilentFail(retrievals[index]);
+        }
+
+        public int EnqueueRetrieval(ThingDef item)
+        {
+            if (retrievals == null)
+                retrievals = new List<string>();
+            retrievals.Add(item.defName);
+            return retrievals.Count - 1;
         }
 
         public override void PostDestroy(DestroyMode mode, Map previousMap)
         {
+            DestroyPersona(linked);
+            linked = null;
             if (inner != null)
             {
                 for (int i = inner.Count - 1; i >= 0; i--)
-                {
-                    Pawn pawn = inner[i];
-                    inner.Remove(pawn);
-                    if (pawn != null && !pawn.Destroyed)
-                        pawn.Destroy(DestroyMode.Vanish);
-                }
+                    DestroyPersona(inner[i]);
             }
 
             base.PostDestroy(mode, previousMap);
@@ -94,8 +136,12 @@ namespace ShipCorePersona
                 return;
 
             PlaceBesideCore();
+            WakeIfDowned(persona);
             if (parent.IsHashIntervalTick(60))
                 CorePersonaUtility.SyncBandwidth(persona, parent);
+
+            if (persona.Spawned)
+                return;
 
             try
             {
@@ -110,23 +156,51 @@ namespace ShipCorePersona
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[ShipCorePersona] 推动核心人格的工作时出错：" + ex, persona.thingIDNumber ^ 0x51C0);
+                Log.ErrorOnce("[ShipCorePersona] 飞船主脑执行工作时出错：" + ex, persona.thingIDNumber ^ 0x51C0);
             }
         }
 
-        public override string CompInspectStringExtra()
+        public override void PostDraw()
         {
+            base.PostDraw();
             Pawn persona = Persona;
-            if (persona == null)
-                return null;
+            if (persona?.mechanitor == null || !parent.Spawned || !DraftedMechSelected(persona))
+                return;
 
-            if (persona.mechanitor == null)
-                return "ShipCorePersona_InspectDormant".Translate(persona.LabelShortCap);
+            GenDraw.DrawRadiusRing(persona.Position, MechCommandRange, Color.white, cell => persona.mechanitor.CanCommandTo(cell));
+        }
 
-            return "ShipCorePersona_Inspect".Translate(
-                persona.LabelShortCap,
-                persona.mechanitor.UsedBandwidth,
-                persona.mechanitor.TotalBandwidth);
+        public override IEnumerable<FloatMenuOption> CompFloatMenuOptions(Pawn selPawn)
+        {
+            foreach (FloatMenuOption option in base.CompFloatMenuOptions(selPawn))
+                yield return option;
+
+            Pawn persona = Persona;
+            if (persona == null || parent.Faction != Faction.OfPlayer || selPawn == null)
+                yield break;
+
+            foreach (ThingDef item in ImplantAccess.Retrievable(persona))
+            {
+                yield return ImplantOption(selPawn, "ShipCorePersona_RetrieveImplant".Translate(item.LabelCap), delegate
+                {
+                    Job job = JobMaker.MakeJob(ShipCorePersonaDefOf.RetrieveShipCoreImplant, parent);
+                    job.count = EnqueueRetrieval(item);
+                    selPawn.jobs.TryTakeOrderedJob(job);
+                });
+            }
+
+            foreach (Thing carried in ImplantAccess.CarriedImplants(selPawn))
+            {
+                if (!ImplantAccess.CanInstall(persona, carried.def))
+                    continue;
+
+                Thing item = carried;
+                yield return ImplantOption(selPawn, "ShipCorePersona_StoreImplant".Translate(item.def.LabelCap), delegate
+                {
+                    Job job = JobMaker.MakeJob(ShipCorePersonaDefOf.StoreShipCoreImplant, parent, item);
+                    selPawn.jobs.TryTakeOrderedJob(job);
+                });
+            }
         }
 
         public override IEnumerable<Gizmo> CompGetGizmosExtra()
@@ -155,7 +229,8 @@ namespace ShipCorePersona
                 };
             }
 
-            if (persona.mechanitor != null)
+            // Gravship Voyage 已经显示机械师按钮时，这里不再显示第二套。能力按钮留在建筑上，施法判定按核心来算。
+            if (persona.mechanitor != null && !VoyageCompat.ShowsMechanitorGizmos(parent))
             {
                 foreach (Gizmo gizmo in persona.mechanitor.GetGizmos())
                     yield return gizmo;
@@ -170,35 +245,157 @@ namespace ShipCorePersona
 
         public void EnsurePersona()
         {
-            if (Persona != null || parent.Faction != Faction.OfPlayer || Faction.OfPlayer == null)
+            if (parent.Faction != Faction.OfPlayer || Faction.OfPlayer == null)
                 return;
             if (!ModsConfig.BiotechActive)
                 return;
+            if (VoyageCompat.IsLoaded && !VoyageCompat.ChipSeated(parent))
+            {
+                DismissPersona();
+                return;
+            }
+            if (Persona != null)
+                return;
 
             Pawn persona = PersonaAppearance.Generate();
+            PersonaAppearance.ApplyCoreName(persona, parent);
             persona.SetFaction(Faction.OfPlayer);
-            inner.TryAdd(persona);
+            linked = persona;
+            RestoreStoredImplants(persona);
             PlaceBesideCore();
+        }
+
+        /// <summary>
+        /// 人格核心已经离开。先把还在身上的机械师植入体记到建筑上，再去掉角色。
+        /// 角色已经不在时什么都不做，避免把建筑上的植入体记录清掉。
+        /// </summary>
+        public void DismissPersona()
+        {
+            Pawn persona = Persona;
+            if (persona == null)
+                return;
+
+            RememberImplants(persona);
+            VoyageCompat.ClearHost(parent, persona);
+            linked = null;
+            DestroyPersona(persona);
+        }
+
+        private void RememberImplants(Pawn persona)
+        {
+            storedImplants = new List<StoredCoreImplant>();
+            if (persona?.health == null)
+                return;
+
+            foreach (Hediff hediff in persona.health.hediffSet.hediffs)
+            {
+                if (!ImplantAccess.IsMechanitorImplantHediff(hediff))
+                    continue;
+
+                storedImplants.Add(new StoredCoreImplant
+                {
+                    defName = hediff.def.defName,
+                    level = hediff is Hediff_Level level ? level.level : 1
+                });
+            }
+        }
+
+        private void RestoreStoredImplants(Pawn persona)
+        {
+            if (persona?.health == null || storedImplants == null)
+                return;
+
+            for (int i = 0; i < storedImplants.Count; i++)
+            {
+                StoredCoreImplant record = storedImplants[i];
+                HediffDef def = DefDatabase<HediffDef>.GetNamedSilentFail(record?.defName);
+                if (def == null)
+                    continue;
+
+                Hediff existing = persona.health.hediffSet.GetFirstHediffOfDef(def);
+                if (existing == null)
+                    existing = persona.health.AddHediff(def, CorePersonaUtility.BrainOf(persona));
+                if (existing is Hediff_Level level)
+                {
+                    int target = record.level < 1 ? 1 : record.level;
+                    int guard = 0;
+                    while (level.level < target && level.level < level.def.maxSeverity && guard++ < 12)
+                    {
+                        int before = level.level;
+                        level.ChangeLevel(1);
+                        if (level.level <= before)
+                            break;
+                    }
+                }
+
+                if (def == HediffDefOf.MechlinkImplant)
+                    MechlinkTakenOut = false;
+            }
+
+            PawnComponentsUtility.AddAndRemoveDynamicComponents(persona, false);
+            CorePersonaUtility.SyncBandwidth(persona, parent);
+        }
+
+        private FloatMenuOption ImplantOption(Pawn worker, string label, Action action)
+        {
+            if (!worker.CanReach(parent, PathEndMode.Touch, Danger.Deadly))
+                return new FloatMenuOption(label + ": " + "NoPath".Translate().CapitalizeFirst(), null);
+
+            return new FloatMenuOption(label, action);
+        }
+
+        private static bool DraftedMechSelected(Pawn persona)
+        {
+            List<Pawn> selected = Find.Selector.SelectedPawns;
+            for (int i = 0; i < selected.Count; i++)
+            {
+                if (selected[i].Drafted && selected[i].GetOverseer() == persona)
+                    return true;
+            }
+
+            return false;
         }
 
         private void PlaceBesideCore()
         {
             Pawn persona = Persona;
-            if (persona == null || persona.Spawned || parent.Map == null)
+            if (persona == null || persona.Destroyed || parent.Map == null)
                 return;
 
+            linked = persona;
             IntVec3 cell = parent.Position;
-            foreach (IntVec3 adjacent in GenAdj.CellsAdjacent8Way(parent))
+            if (persona.ParentHolder is ThingOwner owner && owner.Owner == this)
+                owner.Remove(persona);
+
+            if (!persona.Spawned)
             {
-                if (adjacent.InBounds(parent.Map) && adjacent.Standable(parent.Map))
-                {
-                    cell = adjacent;
-                    break;
-                }
+                GenSpawn.Spawn(persona, cell, parent.Map);
+                return;
             }
 
+            // 能力正在前摇时，不要把她拉回核心旁边，以免打断已经开始的能力。
+            if (persona.stances?.curStance is Stance_Warmup)
+                return;
             if (persona.Position != cell)
                 persona.Position = cell;
+        }
+
+        private static void WakeIfDowned(Pawn persona)
+        {
+            if (persona.Dead || !persona.Downed || persona.health == null || persona.health.ShouldBeDowned())
+                return;
+
+            Hediff bound = persona.health.hediffSet.GetFirstHediffOfDef(ShipCorePersonaDefOf.ShipCorePersonaBound);
+            persona.health.CheckForStateChange(null, bound);
+        }
+
+        private static void DestroyPersona(Pawn pawn)
+        {
+            if (pawn == null || pawn.Destroyed)
+                return;
+            if (pawn.ParentHolder is ThingOwner owner)
+                owner.Remove(pawn);
+            pawn.Destroy(DestroyMode.Vanish);
         }
     }
 }

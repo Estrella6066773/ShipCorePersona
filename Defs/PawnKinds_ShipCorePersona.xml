@@ -3,8 +3,14 @@
 
   <PawnKindDef>
     <defName>ShipCorePersona</defName>
-    <label>ship core persona</label>
-    <labelPlural>ship core personas</labelPlural>
+    <label>ship mind</label>
+    <labelPlural>ship minds</labelPlural>
+    <fixedChildBackstories>
+      <li>ShipCorePersona_Childhood</li>
+    </fixedChildBackstories>
+    <fixedAdultBackstories>
+      <li>ShipCorePersona_Adulthood</li>
+    </fixedAdultBackstories>
     <race>Human</race>
     <combatPower>40</combatPower>
     <chemicalAddictionChance>0</chemicalAddictionChance>

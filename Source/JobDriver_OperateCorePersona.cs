@@ -8,12 +8,7 @@ using Verse.AI;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 医生走到电脑核心旁边，把背包里的植入体和药品用掉，然后装到核心人格身上。
-    ///
-    /// 联动关系：工作由 <see cref="WorkGiver_OperateCorePersona"/> 发出。
-    /// 目标 A 是电脑核心，目标 B 若存在则是还缺的那一件材料。
-    /// 材料搬完后工作结束，工作分配器会再发一次；材料齐了才进入手术等待。
-    /// 安装结果交给 <see cref="Recipe_InstallCorePersonaImplant.ApplyOnPawn"/>。
+    /// 目标 A 是飞船电脑核心，目标 B 是还缺的材料。材料齐了才做手术。
     /// </summary>
     public class JobDriver_OperateCorePersona : JobDriver
     {
