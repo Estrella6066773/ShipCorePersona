@@ -8,10 +8,10 @@ namespace ShipCorePersona
 {
     /// <summary>
     /// 生成飞船主脑。幼年背景是人格核心，成年背景是飞船主脑。
-    /// 10 点手工写在成年背景上，生成时就会加上，这里不再改技能。
+    /// 10 点手工写在成年背景上，生成时就会加上，这里不再改手工等级。
     /// 头型和发型交给生成器。性别在生成请求里定为女性。
     /// 体型从「女性」「纤细」「魁梧」里取一个，不取「肥胖」。
-    /// 生成请求不带发色、肤色和衣物材料。发色和肤色等生成完再写上。衣服换成一套合成纤维的裤子和衬衫。
+    /// 生成请求不带发色、肤色和衣物材料。发色和肤色等生成完再写上。生成完再把她的衣服换成一套合成纤维的裤子和衬衫。
     /// 名字不在这里取。调用方沿用人格核心上已有的名字。
     /// </summary>
     public static class PersonaAppearance
@@ -61,9 +61,9 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// 名字跟人格核心走。核心上已经有名字，就用那个名字。
-        /// 芯片还在核心里、名字还空着时，让核心取一次名字，角色用同一个。
-        /// 没有 Gravship Voyage 时，用幼年背景的标题「人格核心」。
+        /// 飞船主脑的名字用人格核心上的名字。人格核心上已经有名字，就用那个名字。
+        /// 人格芯片还在飞船电脑核心里、名字还空着时，让人格核心取一次名字，飞船主脑用同一个名字。
+        /// 没有 Gravship Voyage 时，用幼年背景的标题「人格核心」给飞船主脑起名。
         /// </summary>
         public static void ApplyCoreName(Pawn persona, Thing core)
         {
@@ -98,7 +98,7 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// 生成请求里的 ForceBodyType 会被后来的基因改掉，肥胖就从这里再换掉。
+        /// 生成请求里的 ForceBodyType 会被后来的基因改掉。基因把体型改成肥胖时，在这里再换成「女性」「纤细」或「魁梧」。
         /// </summary>
         public static void EnsureBodyType(Pawn persona)
         {
@@ -112,7 +112,7 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// 旧档里飞船主脑带着隐形组件。读档后卸掉这份状态再加回去，隐形效果就不会留下。
+        /// 旧档里飞船主脑的健康状态带着隐形组件。读档后卸掉这份健康状态，再重新加上飞船主脑状态，隐形效果就不会留下。
         /// </summary>
         public static void ClearInvisibility(Pawn persona)
         {

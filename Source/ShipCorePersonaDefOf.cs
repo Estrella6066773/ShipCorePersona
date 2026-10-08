@@ -4,7 +4,7 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 本模组的定义。
+    /// 本模组用到的定义。
     /// </summary>
     [DefOf]
     public static class ShipCorePersonaDefOf

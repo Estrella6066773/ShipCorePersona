@@ -16,13 +16,13 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 飞船主脑生成在飞船电脑核心所占的格子上。绘制时用建筑中心，看起来人在建筑里面。
+    /// 飞船主脑生成在飞船电脑核心所占的格子上。绘制时用建筑中心，看起来飞船主脑在飞船电脑核心里面。
     /// 她仍然生成在地图上，能力才能放出来。她保持清醒。
     /// 不能把移动设成 0，否则原版会把她当成倒地、失去知觉。
-    /// 旧档里她还在容器中。读档后挪到旁边那一格。容器只用来迁旧档。
-    /// retrievals 的下标对应取出工作的 count，不能从中间删。
-    /// 人格核心离开建筑，或建筑暂时离图时，角色离开地图，收进专属人物池，不删除。
-    /// 关联的人格核心没了，才删除角色。storedImplants 只在第一次生成时用。角色已经不在时不要清空这份记录。
+    /// 旧档里她还在容器中。读档后把她挪到旁边那一格。容器只用来把旧档里的飞船主脑迁出来。
+    /// retrievals 的下标对应取出工作的 count，不能从中间删掉取出记录。
+    /// 人格核心离开飞船电脑核心，或飞船电脑核心暂时离开地图时，飞船主脑离开地图，收进专属人物池，不删除飞船主脑。
+    /// 关联的人格核心没了，才删除飞船主脑。storedImplants 只在第一次生成时用。飞船主脑已经不在时，不要清空这份植入物记录。
     /// </summary>
     public class CompShipCorePersona : ThingComp, IThingHolder
     {
@@ -255,7 +255,7 @@ namespace ShipCorePersona
                 };
             }
 
-            // Gravship Voyage 已经显示机械师按钮时，这里不再显示第二套。能力按钮留在建筑上，施法判定按核心来算。
+            // Gravship Voyage 已经显示机械师按钮时，这里不再显示第二套机械师按钮。能力按钮留在飞船电脑核心上，施法判定按飞船电脑核心的位置来算。
             if (persona.mechanitor != null && !VoyageCompat.ShowsMechanitorGizmos(parent))
             {
                 foreach (Gizmo gizmo in persona.mechanitor.GetGizmos())
@@ -301,8 +301,8 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// 人格核心已经离开，或电脑核心暂时不在地图上。人离开地图，收进专属人物池。
-        /// 角色已经不在时什么都不做，避免把建筑上的植入体记录清掉。
+        /// 人格核心已经离开，或飞船电脑核心暂时不在地图上。飞船主脑离开地图，收进专属人物池。
+        /// 飞船主脑已经不在时什么都不做，避免把飞船电脑核心上的植入物记录清掉。
         /// </summary>
         public void DeactivatePersona()
         {
@@ -409,7 +409,7 @@ namespace ShipCorePersona
                 return;
             }
 
-            // 能力正在前摇时，不要把她拉回核心旁边，以免打断已经开始的能力。
+            // 能力正在前摇时，不要把她拉回飞船电脑核心旁边，以免打断已经开始的能力。
             if (persona.stances?.curStance is Stance_Warmup)
                 return;
             if (persona.Position != cell)

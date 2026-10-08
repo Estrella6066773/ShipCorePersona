@@ -8,7 +8,7 @@
     </value>
   </Operation>
 
-  <!-- 去掉「不能盖在屋顶下」。室内和逆重飞船舱内都可以放置。 -->
+  <!-- 去掉「不能盖在屋顶下」。室内和逆重飞船舱内都可以放置飞船电脑核心。 -->
   <Operation Class="PatchOperationConditional">
     <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/placeWorkers/li[text()="PlaceWorker_NotUnderRoof"]</xpath>
     <match Class="PatchOperationRemove">
@@ -42,7 +42,7 @@
     </nomatch>
   </Operation>
 
-  <!-- 飞船电脑核心还没有逆重设施组件时才加。Gravship Voyage 若已经加上驾驶台组件，这里不重复加。不占用驾驶台的控制槽。 -->
+  <!-- 飞船电脑核心还没有逆重设施组件时才加。Gravship Voyage 若已经加上驾驶台组件，这里不重复加逆重设施组件。这个组件不占用驾驶台的控制槽。 -->
   <Operation Class="PatchOperationConditional">
     <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]/comps/li[@Class="CompProperties_GravshipFacility" or compClass="CompPilotConsole"]</xpath>
     <nomatch Class="PatchOperationAdd">
@@ -58,7 +58,7 @@
     </nomatch>
   </Operation>
 
-  <!-- 和休眠舱一样：选中核心时，可以再选中里面的人。 -->
+  <!-- 和休眠舱一样：选中飞船电脑核心时，可以再选中里面的飞船主脑。 -->
   <Operation Class="PatchOperationAdd">
     <xpath>/Defs/ThingDef[defName="Ship_ComputerCore"]</xpath>
     <value>

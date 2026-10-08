@@ -2,15 +2,14 @@ using System.Collections.Generic;
 using HarmonyLib;
 using RimWorld;
 using RimWorld.Planet;
-using UnityEngine;
 using Verse;
 using Verse.AI;
 
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 飞船主脑不在地图上时，原版不让她指挥机械族。电脑核心还在，就允许指挥。
-    /// 倒地、被俘、精神崩溃仍按原版处理。
+    /// 飞船主脑不在地图上时，原版不让她指挥机械族。飞船电脑核心还在地图上，就允许她指挥机械族。
+    /// 倒地、被俘、精神崩溃时，仍按原版不让她指挥机械族。
     /// </summary>
     [HarmonyPatch(typeof(Pawn_MechanitorTracker), "get_CanControlMechs")]
     public static class Patch_CorePersonaCanControlMechs
@@ -33,7 +32,7 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 机械族的「选择监督者」在监督者还没生成时是灰的。这里要能重新选中飞船主脑。
+    /// 机械族的「选择监督者」在监督者还没生成时是灰的。这个按钮要能重新选中飞船主脑。
     /// </summary>
     [HarmonyPatch(typeof(MechanitorUtility), nameof(MechanitorUtility.GetMechGizmos))]
     public static class Patch_SelectCorePersonaOverseer
@@ -68,7 +67,7 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 机械师植入体只通过电脑核心存取。角色自己的手术单里不出现这些操作。
+    /// 机械师植入物只通过飞船电脑核心存取。飞船主脑自己的手术单里不出现安装和取出这些植入物的操作。
     /// </summary>
     [HarmonyPatch(typeof(RecipeWorker), nameof(RecipeWorker.AvailableOnNow))]
     public static class Patch_SurgeryOnlyImplants
@@ -83,7 +82,7 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 选中人格角色再点植入体时，原版会给出「给她安装」的菜单。安装和取出只走电脑核心。
+    /// 选中飞船主脑再点机械师植入物时，原版会给出「给她安装」的菜单。安装和取出只通过飞船电脑核心进行。
     /// </summary>
     [HarmonyPatch(typeof(CompUsable), nameof(CompUsable.CompFloatMenuOptions))]
     public static class Patch_PersonaDoesNotUseImplants
@@ -100,7 +99,7 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 拿着植入体点人格角色时，原版会把她当成安装目标。这个目标不可用。
+    /// 拿着机械师植入物点飞船主脑时，原版会把她当成安装目标。飞船主脑这个安装目标不可用。
     /// </summary>
     [HarmonyPatch(typeof(CompTargetable), nameof(CompTargetable.ValidateTarget))]
     public static class Patch_PersonaIsNotImplantTarget
@@ -119,8 +118,8 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 飞船主脑不能离开电脑核心。
-    /// 释放能力和原地等待这两类工作要放行，否则能力放不出来，征召也会报错。
+    /// 飞船主脑不能离开飞船电脑核心。
+    /// 释放能力和原地等待这两类工作要允许她做，否则能力放不出来，征召也会报错。
     /// </summary>
     [HarmonyPatch(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.StartJob))]
     public static class Patch_PersonaCannotAct
@@ -141,7 +140,7 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 飞船主脑不在地图上画出来。她仍生成在核心所占的格子上，能力用那个格子计算距离。
+    /// 飞船主脑不在地图上画出来。她仍生成在飞船电脑核心所占的格子上，能力用那个格子计算距离。
     /// </summary>
     [HarmonyPatch(typeof(Pawn), nameof(Pawn.DynamicDrawPhaseAt))]
     public static class Patch_PersonaHidden
@@ -163,8 +162,8 @@ namespace ShipCorePersona
 
     /// <summary>
     /// 飞船主脑放能力时不检查视线，距离仍要在能力范围内。
-    /// 她在建筑里，建筑本身会挡住视线，所以这里直接放过视线检查。
-    /// 开始施放时，原版另外调用 TryFindShootLineFromTo，不走 CanHitTargetFrom，所以两处都要放过。
+    /// 她在飞船电脑核心里，飞船电脑核心本身会挡住视线，所以这里直接放过视线检查。
+    /// 开始施放时，原版另外调用 TryFindShootLineFromTo，不走 CanHitTargetFrom，所以两处都要放过视线检查。
     /// </summary>
     [HarmonyPatch(typeof(Verb), nameof(Verb.CanHitTargetFrom))]
     public static class Patch_PersonaIgnoresSight
@@ -229,8 +228,8 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 近身能力原版要求人走到目标旁边。人站在建筑里走不出去，于是每个目标都选不中。
-    /// 挨着电脑核心的目标算够得着。有射程的能力仍按距离判断，不看视线。
+    /// 近身能力原版要求施放者走到目标旁边。飞船主脑站在飞船电脑核心里走不出去，于是每个目标都选不中。
+    /// 挨着飞船电脑核心的目标，算飞船主脑够得着这些目标。有射程的能力仍按距离判断能不能打中，不看视线。
     /// </summary>
     [HarmonyPatch(typeof(Verb_CastAbility), nameof(Verb_CastAbility.ValidateTarget))]
     public static class Patch_PersonaAbilityTarget
@@ -263,8 +262,8 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 原版找施法格子时，会挑一个看得见目标的位置，人就会走出建筑。
-    /// 飞船主脑就在当前格子施放。
+    /// 原版找施法格子时，会挑一个看得见目标的位置，施放者就会走出建筑。
+    /// 飞船主脑不走出飞船电脑核心，就在当前格子施放能力。
     /// </summary>
     [HarmonyPatch(typeof(CastPositionFinder), nameof(CastPositionFinder.TryFindCastPosition))]
     public static class Patch_PersonaCastsFromCore
@@ -286,41 +285,66 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 殖民者名单是疾病、社交冲突这些事件的抽人来源。飞船主脑不进这些名单。
-    /// 上方栏另外把她加回去，所以设施里仍能看见她。
+    /// 疾病和社交冲突用的是另一份殖民者名单，不是上方栏那份。
+    /// 这里交出去的是去掉飞船主脑的副本，不改上方栏正在用的那份名单。
     /// </summary>
-    [HarmonyPatch(typeof(MapPawns), nameof(MapPawns.FreeHumanlikesOfFaction))]
-    public static class Patch_PersonaNotInColonistList
-    {
-        public static void Postfix(ref List<Pawn> __result)
-        {
-            StripPersonas(__result);
-        }
-
-        internal static void StripPersonas(List<Pawn> pawns)
-        {
-            if (pawns == null)
-                return;
-
-            for (int i = pawns.Count - 1; i >= 0; i--)
-            {
-                if (CorePersonaUtility.IsPersona(pawns[i]))
-                    pawns.RemoveAt(i);
-            }
-        }
-    }
-
     [HarmonyPatch(typeof(MapPawns), nameof(MapPawns.FreeHumanlikesSpawnedOfFaction))]
     public static class Patch_PersonaNotInSpawnedColonistList
     {
         public static void Postfix(ref List<Pawn> __result)
         {
-            Patch_PersonaNotInColonistList.StripPersonas(__result);
+            WithoutPersonas(ref __result);
+        }
+
+        internal static void WithoutPersonas(ref List<Pawn> pawns)
+        {
+            if (pawns == null)
+                return;
+
+            bool found = false;
+            for (int i = 0; i < pawns.Count; i++)
+            {
+                if (CorePersonaUtility.IsPersona(pawns[i]))
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                return;
+
+            List<Pawn> copy = new List<Pawn>(pawns.Count - 1);
+            for (int i = 0; i < pawns.Count; i++)
+            {
+                if (!CorePersonaUtility.IsPersona(pawns[i]))
+                    copy.Add(pawns[i]);
+            }
+
+            pawns = copy;
+        }
+    }
+
+    [HarmonyPatch(typeof(MapPawns), "get_FreeColonistsAndPrisoners")]
+    public static class Patch_PersonaNotInColonistsAndPrisoners
+    {
+        public static void Postfix(ref List<Pawn> __result)
+        {
+            Patch_PersonaNotInSpawnedColonistList.WithoutPersonas(ref __result);
+        }
+    }
+
+    [HarmonyPatch(typeof(MapPawns), "get_FreeColonistsAndPrisonersSpawned")]
+    public static class Patch_PersonaNotInColonistsAndPrisonersSpawned
+    {
+        public static void Postfix(ref List<Pawn> __result)
+        {
+            Patch_PersonaNotInSpawnedColonistList.WithoutPersonas(ref __result);
         }
     }
 
     /// <summary>
-    /// 离开地图时原版会把人放进世界人物池。飞船主脑只留在专属人物池里。
+    /// 离开地图时，原版会把殖民者放进世界人物池。飞船主脑不进世界人物池，只留在专属人物池里。
     /// </summary>
     [HarmonyPatch(typeof(WorldPawns), nameof(WorldPawns.PassToWorld))]
     public static class Patch_PersonaSkipsWorldPawnPool
@@ -352,102 +376,6 @@ namespace ShipCorePersona
         public static bool Prefix(InspirationHandler __instance)
         {
             return !CorePersonaUtility.IsPersona(__instance.pawn);
-        }
-    }
-
-    /// <summary>
-    /// 殖民者名单里没有飞船主脑，这里把她加回上方栏。从设施卸下后她不在地图上，栏里也就没有她。
-    /// </summary>
-    [HarmonyPatch(typeof(ColonistBar), "CheckRecacheEntries")]
-    public static class Patch_PersonaOnColonistBar
-    {
-        private static bool adding;
-
-        public static void Postfix(ColonistBar __instance)
-        {
-            if (adding || Find.PlaySettings == null || !Find.PlaySettings.showColonistBar)
-                return;
-
-            List<ColonistBar.Entry> entries = AccessTools.Field(typeof(ColonistBar), "cachedEntries").GetValue(__instance) as List<ColonistBar.Entry>;
-            if (entries == null)
-                return;
-
-            bool added = false;
-            for (int mapIndex = 0; mapIndex < Find.Maps.Count; mapIndex++)
-            {
-                Map map = Find.Maps[mapIndex];
-                int group = -1;
-                for (int i = 0; i < entries.Count; i++)
-                {
-                    if (entries[i].map == map)
-                        group = entries[i].group;
-                }
-
-                if (group < 0)
-                    continue;
-
-                List<Pawn> spawned = map.mapPawns.SpawnedPawnsInFaction(Faction.OfPlayer);
-                for (int i = 0; i < spawned.Count; i++)
-                {
-                    Pawn pawn = spawned[i];
-                    if (!CorePersonaUtility.IsPersona(pawn) || pawn.Dead)
-                        continue;
-                    if (Listed(entries, pawn))
-                        continue;
-
-                    for (int entryIndex = entries.Count - 1; entryIndex >= 0; entryIndex--)
-                    {
-                        if (entries[entryIndex].map == map && entries[entryIndex].pawn == null)
-                            entries.RemoveAt(entryIndex);
-                    }
-
-                    entries.Add(new ColonistBar.Entry(pawn, map, group));
-                    added = true;
-                }
-            }
-
-            if (!added)
-                return;
-
-            if (AccessTools.Field(typeof(ColonistBar), "cachedReorderableGroups").GetValue(__instance) is List<int> reorder)
-            {
-                reorder.Clear();
-                for (int i = 0; i < entries.Count; i++)
-                    reorder.Add(-1);
-            }
-
-            int groups = 0;
-            for (int i = 0; i < entries.Count; i++)
-            {
-                if (entries[i].group + 1 > groups)
-                    groups = entries[i].group + 1;
-            }
-
-            adding = true;
-            try
-            {
-                List<Vector2> locs = AccessTools.Field(typeof(ColonistBar), "cachedDrawLocs").GetValue(__instance) as List<Vector2>;
-                object finder = AccessTools.Field(typeof(ColonistBar), "drawLocsFinder").GetValue(__instance);
-                object[] args = { locs, 1f, groups };
-                AccessTools.Method(typeof(ColonistBarDrawLocsFinder), "CalculateDrawLocs").Invoke(finder, args);
-                AccessTools.Field(typeof(ColonistBar), "cachedScale").SetValue(__instance, args[1]);
-                __instance.drawer.Notify_RecachedEntries();
-            }
-            finally
-            {
-                adding = false;
-            }
-        }
-
-        private static bool Listed(List<ColonistBar.Entry> entries, Pawn pawn)
-        {
-            for (int i = 0; i < entries.Count; i++)
-            {
-                if (entries[i].pawn == pawn)
-                    return true;
-            }
-
-            return false;
         }
     }
 }

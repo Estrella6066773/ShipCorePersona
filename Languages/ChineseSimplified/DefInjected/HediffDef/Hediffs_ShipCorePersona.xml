@@ -7,5 +7,5 @@
   <ShipCorePersonaBandwidth.description>机控中枢提供 6 点机械带宽。这项健康状态再为飞船主脑补上 14 点，加在一起是 20 点。</ShipCorePersonaBandwidth.description>
 
   <ShipCorePersonaChipOffset.label>机械带宽校正</ShipCorePersonaChipOffset.label>
-  <ShipCorePersonaChipOffset.description>校正机械带宽。</ShipCorePersonaChipOffset.description>
+  <ShipCorePersonaChipOffset.description>人格芯片已经提供 20 点机械带宽。这项健康状态把机控中枢多出来的 6 点扣掉，机械带宽仍是 20 点。</ShipCorePersonaChipOffset.description>
 </LanguageData>

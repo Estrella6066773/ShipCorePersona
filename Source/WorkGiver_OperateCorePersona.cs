@@ -5,7 +5,7 @@ using Verse.AI;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 医生给飞船主脑做手术。材料先放进医生背包，齐了才在核心旁边动手。
+    /// 医生给飞船主脑做手术。材料先放进医生背包，材料齐了才在飞船电脑核心旁边做手术。
     /// </summary>
     public class WorkGiver_OperateCorePersona : WorkGiver_Scanner
     {

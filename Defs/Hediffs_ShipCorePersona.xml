@@ -19,7 +19,7 @@
     </stages>
   </HediffDef>
 
-  <!-- 机控中枢自带 6 点机械带宽，这里再补 14 点，合计 20 点。 -->
+  <!-- 机控中枢自带 6 点机械带宽，这项健康状态再补 14 点，合计 20 点。 -->
   <HediffDef>
     <defName>ShipCorePersonaBandwidth</defName>
     <hediffClass>Hediff</hediffClass>

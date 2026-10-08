@@ -7,7 +7,7 @@ namespace ShipCorePersona
 {
     /// <summary>
     /// 认出飞船主脑，并把机械带宽维持在 20 点。
-    /// 玩家自己取出机控中枢之后，不要自动装回去。
+    /// 玩家自己取出机控中枢之后，不要自动把机控中枢装回去。
     /// 除此之外不要卸掉机控中枢，卸掉会断开她和机械族的联系。
     /// </summary>
     public static class CorePersonaUtility

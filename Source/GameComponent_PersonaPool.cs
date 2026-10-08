@@ -6,8 +6,8 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 飞船主脑的专属人物池。非激活时人在这里，不进世界人物池，事件抽不到她。
-    /// 关联的人格核心还在就留着。人格核心没了才删除。
+    /// 飞船主脑的专属人物池。飞船主脑未激活时待在这个人物池里，不进世界人物池，事件抽不到她。
+    /// 关联的人格核心还在，就把飞船主脑留在这个人物池里。人格核心没了，才删除飞船主脑。
     /// </summary>
     public class GameComponent_PersonaPool : GameComponent, IThingHolder
     {

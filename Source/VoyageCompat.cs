@@ -67,8 +67,8 @@ namespace ShipCorePersona
 
         /// <summary>
         /// 读取人格核心的名字。
-        /// 芯片还在核心里、名字还空着时，调用那边的 EnsureNamed，只取一次。
-        /// 芯片已经离开核心时，核心上的 mind 是空的，这时只读 AIName，不再另外取名字。
+        /// 人格芯片还在飞船电脑核心里、名字还空着时，调用 Gravship Voyage 的 EnsureNamed，只取一次名字。
+        /// 人格芯片已经离开飞船电脑核心时，飞船电脑核心上的 mind 是空的，这时只读 AIName，不再另外取名字。
         /// </summary>
         public static string CoreName(Thing core)
         {
@@ -114,7 +114,7 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// 人格核心还在世界上就返回 true。电脑核心被收起时，芯片仍算在那栋建筑里。
+        /// 人格核心还在世界上就返回 true。飞船电脑核心被收起时，人格芯片仍留在这栋飞船电脑核心里，也算还在世界上。
         /// </summary>
         public static bool MindStillExists(int id)
         {
@@ -207,7 +207,7 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// Gravship Voyage 把「取出人格核心」挂在人身上。飞船主脑不提供这项，芯片只从电脑核心取出。
+        /// Gravship Voyage 把「取出人格核心」挂在机械师身上。飞船主脑不提供「取出人格核心」。人格芯片只从飞船电脑核心取出。
         /// </summary>
         public static void PostfixNoExtractFromPersona(ThingComp __instance, ref System.Collections.Generic.IEnumerable<FloatMenuOption> __result)
         {

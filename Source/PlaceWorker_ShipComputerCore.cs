@@ -5,8 +5,9 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 重型地面和逆重飞船基架都能放。
-    /// 原版的地面要求只能填一种，所以改在这里同时判断。连上飞船另算。
+    /// 重型地面和逆重飞船基架都能放飞船电脑核心。
+    /// 原版的地面要求只能填一种，所以改在这里同时判断这两种地面。
+    /// 这次只判断能不能放置飞船电脑核心。连上逆重飞船不由这次放置判断决定。
     /// </summary>
     public class PlaceWorker_ShipComputerCore : PlaceWorker
     {

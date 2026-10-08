@@ -5,7 +5,7 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 模组入口。补丁挂上之后再登记逆重引擎，因为那时定义已经加载完。
+    /// 模组入口。补丁挂上之后，再把飞船电脑核心登记进逆重引擎可以连接的设施，因为那时定义已经加载完。
     /// </summary>
     [StaticConstructorOnStartup]
     internal static class ModEntry

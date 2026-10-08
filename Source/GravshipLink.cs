@@ -7,7 +7,7 @@ namespace ShipCorePersona
 {
     /// <summary>
     /// 把飞船电脑核心登记进逆重引擎可以连接的设施。
-    /// 遍历会连接逆重设施的引擎，不把引擎的 defName 写死。定义加载完才能调用。
+    /// 遍历会连接逆重设施的引擎，不把引擎的 defName 写死。定义加载完才能调用这次登记。
     /// </summary>
     public static class GravshipEngineWhitelist
     {
@@ -62,8 +62,8 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 整座飞船电脑核心都在那艘船的基架上，才算连上。
-    /// 原版碰到第一台距离不够的引擎就会直接判失败，这里要跳过那台引擎，继续看下一台。
+    /// 整座飞船电脑核心都在那艘船的基架上，才算连上这艘逆重飞船。
+    /// 原版碰到第一台距离不够的引擎，就会直接判定这台飞船电脑核心不能连上逆重引擎。这里要跳过那台引擎，继续看下一台。
     /// </summary>
     [HarmonyPatch(typeof(CompGravshipFacility), "get_CanBeActive")]
     public static class Patch_ShipComputerCoreLinksOnlyOnItsFloor
