@@ -111,10 +111,13 @@ namespace ShipCorePersona
             persona.Drawer?.renderer?.SetAllGraphicsDirty();
         }
 
-        public static void EnsureHologram(Pawn persona)
+        /// <summary>
+        /// 旧档里飞船主脑带着隐形组件。读档后卸掉这份状态再加回去，隐形效果就不会留下。
+        /// </summary>
+        public static void ClearInvisibility(Pawn persona)
         {
             Hediff bound = persona?.health?.hediffSet?.GetFirstHediffOfDef(ShipCorePersonaDefOf.ShipCorePersonaBound);
-            if (bound == null || bound.TryGetComp<HediffComp_Invisibility>() != null)
+            if (bound?.TryGetComp<HediffComp_Invisibility>() == null)
                 return;
 
             persona.health.RemoveHediff(bound);

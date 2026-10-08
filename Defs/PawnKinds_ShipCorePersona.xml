@@ -17,7 +17,6 @@
     <apparelIgnoreSeasons>true</apparelIgnoreSeasons>
     <forceNormalGearQuality>true</forceNormalGearQuality>
     <backstoryCryptosleepCommonality>0</backstoryCryptosleepCommonality>
-    <defaultFactionType>PlayerColony</defaultFactionType>
   </PawnKindDef>
 
 </Defs>

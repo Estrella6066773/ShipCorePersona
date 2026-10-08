@@ -21,7 +21,8 @@ namespace ShipCorePersona
     /// 不能把移动设成 0，否则原版会把她当成倒地、失去知觉。
     /// 旧档里她还在容器中。读档后挪到旁边那一格。容器只用来迁旧档。
     /// retrievals 的下标对应取出工作的 count，不能从中间删。
-    /// 人格核心离开建筑后，角色被去掉。storedImplants 留在建筑上，重新生成角色时再装回去。角色已经不在时不要清空这份记录。
+    /// 人格核心离开建筑，或建筑暂时离图时，角色离开地图，收进专属人物池，不删除。
+    /// 关联的人格核心没了，才删除角色。storedImplants 只在第一次生成时用。角色已经不在时不要清空这份记录。
     /// </summary>
     public class CompShipCorePersona : ThingComp, IThingHolder
     {
@@ -73,7 +74,7 @@ namespace ShipCorePersona
             {
                 PersonaAppearance.EnsureIdentity(Persona);
                 PersonaAppearance.EnsureBodyType(Persona);
-                PersonaAppearance.EnsureHologram(Persona);
+                PersonaAppearance.ClearInvisibility(Persona);
                 PersonaAppearance.ApplyCoreName(Persona, parent);
                 Persona.Notify_DisabledWorkTypesChanged();
                 WakeIfDowned(Persona);
@@ -116,23 +117,48 @@ namespace ShipCorePersona
             return retrievals.Count - 1;
         }
 
+        public override void PostDeSpawn(Map map, DestroyMode mode)
+        {
+            DeactivatePersona();
+            base.PostDeSpawn(map, mode);
+        }
+
         public override void PostDestroy(DestroyMode mode, Map previousMap)
         {
-            DestroyPersona(linked);
-            linked = null;
-            if (inner != null)
+            int mindId = VoyageCompat.BoundMindId(parent);
+            bool chipStillOut = VoyageCompat.IsLoaded && !VoyageCompat.ChipSeated(parent);
+            if (!chipStillOut)
             {
-                for (int i = inner.Count - 1; i >= 0; i--)
-                    DestroyPersona(inner[i]);
+                GameComponent_PersonaPool.DestroyPawn(linked);
+                if (inner != null)
+                {
+                    for (int i = inner.Count - 1; i >= 0; i--)
+                        GameComponent_PersonaPool.DestroyPawn(inner[i]);
+                }
+
+                GameComponent_PersonaPool.ReleaseBuilding(parent.thingIDNumber);
+                GameComponent_PersonaPool.ReleaseMind(mindId);
             }
 
+            linked = null;
             base.PostDestroy(mode, previousMap);
         }
 
         public override void CompTick()
         {
+            if (!parent.Spawned)
+                return;
+            if (VoyageCompat.IsLoaded && !VoyageCompat.ChipSeated(parent))
+            {
+                DeactivatePersona();
+                return;
+            }
+
+            if (Persona == null)
+                EnsurePersona();
+
             Pawn persona = Persona;
-            if (persona == null || persona.Destroyed || !parent.Spawned)
+            if (persona == null || persona.Destroyed)
                 return;
 
             PlaceBesideCore();
@@ -251,25 +277,34 @@ namespace ShipCorePersona
                 return;
             if (VoyageCompat.IsLoaded && !VoyageCompat.ChipSeated(parent))
             {
-                DismissPersona();
+                DeactivatePersona();
                 return;
             }
             if (Persona != null)
                 return;
 
-            Pawn persona = PersonaAppearance.Generate();
+            int mindId = VoyageCompat.BoundMindId(parent);
+            Pawn persona = GameComponent_PersonaPool.Take(mindId, parent.thingIDNumber);
+            bool generated = false;
+            if (persona == null)
+            {
+                persona = PersonaAppearance.Generate();
+                generated = true;
+            }
+
             PersonaAppearance.ApplyCoreName(persona, parent);
             persona.SetFaction(Faction.OfPlayer);
             linked = persona;
-            RestoreStoredImplants(persona);
+            if (generated)
+                RestoreStoredImplants(persona);
             PlaceBesideCore();
         }
 
         /// <summary>
-        /// 人格核心已经离开。先把还在身上的机械师植入体记到建筑上，再去掉角色。
+        /// 人格核心已经离开，或电脑核心暂时不在地图上。人离开地图，收进专属人物池。
         /// 角色已经不在时什么都不做，避免把建筑上的植入体记录清掉。
         /// </summary>
-        public void DismissPersona()
+        public void DeactivatePersona()
         {
             Pawn persona = Persona;
             if (persona == null)
@@ -277,8 +312,9 @@ namespace ShipCorePersona
 
             RememberImplants(persona);
             VoyageCompat.ClearHost(parent, persona);
+            int mindId = VoyageCompat.BoundMindId(parent);
             linked = null;
-            DestroyPersona(persona);
+            GameComponent_PersonaPool.Park(persona, mindId, parent.thingIDNumber);
         }
 
         private void RememberImplants(Pawn persona)
@@ -389,13 +425,5 @@ namespace ShipCorePersona
             persona.health.CheckForStateChange(null, bound);
         }
 
-        private static void DestroyPersona(Pawn pawn)
-        {
-            if (pawn == null || pawn.Destroyed)
-                return;
-            if (pawn.ParentHolder is ThingOwner owner)
-                owner.Remove(pawn);
-            pawn.Destroy(DestroyMode.Vanish);
-        }
     }
 }

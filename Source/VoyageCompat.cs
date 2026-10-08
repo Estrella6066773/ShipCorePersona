@@ -1,5 +1,8 @@
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using RimWorld;
+using RimWorld.Planet;
 using Verse;
 
 namespace ShipCorePersona
@@ -16,6 +19,12 @@ namespace ShipCorePersona
         private static readonly FieldInfo HostField = CoreType == null ? null : AccessTools.Field(CoreType, "host");
         private static readonly FieldInfo ChipField = CoreType == null ? null : AccessTools.Field(CoreType, "chip");
         private static readonly FieldInfo MindField = CoreType == null ? null : AccessTools.Field(CoreType, "mind");
+        private static readonly FieldInfo BoundIdField = CoreType == null ? null : AccessTools.Field(CoreType, "boundId");
+        private static readonly System.Type ChipCompType = AccessTools.TypeByName("GravshipVoyage.CompPersonaChip");
+        private static readonly FieldInfo ChipCompMind = ChipCompType == null ? null : AccessTools.Field(ChipCompType, "mind");
+        private static readonly System.Type ChipHediffType = AccessTools.TypeByName("GravshipVoyage.Hediff_PersonaChip");
+        private static readonly FieldInfo ChipHediffMind = ChipHediffType == null ? null : AccessTools.Field(ChipHediffType, "mind");
+        private static readonly MethodInfo StillInTheWorldMethod = AccessTools.Method("GravshipVoyage.VoyageAI:StillInTheWorld");
 
         public static bool IsLoaded => CoreType != null;
 
@@ -40,6 +49,13 @@ namespace ShipCorePersona
             harmony.Patch(
                 AccessTools.Method(CoreType, "TryWithdraw"),
                 postfix: new HarmonyMethod(typeof(VoyageCompat), nameof(PostfixChipLeft)));
+            System.Type extract = AccessTools.TypeByName("GravshipVoyage.CompChipExtract");
+            if (extract != null)
+            {
+                harmony.Patch(
+                    AccessTools.Method(extract, "CompFloatMenuOptions"),
+                    postfix: new HarmonyMethod(typeof(VoyageCompat), nameof(PostfixNoExtractFromPersona)));
+            }
 
             Log.Message("[ShipCorePersona] 已用飞船主脑替换 Gravship Voyage 随机生成的机械师。");
         }
@@ -78,6 +94,69 @@ namespace ShipCorePersona
             return aiName;
         }
 
+        public static int BoundMindId(Thing core)
+        {
+            if (core == null || !IsLoaded)
+                return 0;
+
+            ThingComp voyage = VoyageComp(core);
+            if (voyage == null)
+                return 0;
+
+            if (ChipField?.GetValue(voyage) is bool seated && seated)
+            {
+                int seatedId = ReadMindId(MindField?.GetValue(voyage), assignIfMissing: true);
+                if (seatedId != 0)
+                    return seatedId;
+            }
+
+            return BoundIdField?.GetValue(voyage) is int boundId ? boundId : 0;
+        }
+
+        /// <summary>
+        /// 人格核心还在世界上就返回 true。电脑核心被收起时，芯片仍算在那栋建筑里。
+        /// </summary>
+        public static bool MindStillExists(int id)
+        {
+            if (id == 0 || !IsLoaded)
+                return false;
+            if (StillInTheWorldMethod != null && StillInTheWorldMethod.Invoke(null, new object[] { id }) is bool alive && alive)
+                return true;
+            if (SeatedCoreHasMind(id))
+                return true;
+
+            foreach (Caravan caravan in Find.WorldObjects.Caravans)
+            {
+                foreach (Thing thing in caravan.AllThings)
+                {
+                    if (ThingCarriesMind(thing, id))
+                        return true;
+                }
+            }
+
+            foreach (WorldObject worldObject in Find.WorldObjects.AllWorldObjects)
+            {
+                if (worldObject is not TravellingTransporters transporters)
+                    continue;
+                foreach (Pawn pawn in transporters.Pawns)
+                {
+                    if (PawnCarriesMind(pawn, id))
+                        return true;
+                }
+
+                ThingOwner held = transporters.GetDirectlyHeldThings();
+                if (held == null)
+                    continue;
+                for (int i = 0; i < held.Count; i++)
+                {
+                    if (ThingCarriesMind(held[i], id))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         public static bool ChipSeated(Thing core)
         {
             if (ChipField == null || core == null)
@@ -100,7 +179,7 @@ namespace ShipCorePersona
             if (previous != null && previous != comp.Persona)
             {
                 CorePersonaUtility.TransferMechs(previous, comp.Persona);
-                if (!previous.Destroyed && !previous.Spawned)
+                if (!previous.Destroyed && !previous.Spawned && !CorePersonaUtility.IsPersona(previous))
                     previous.Destroy(DestroyMode.Vanish);
             }
 
@@ -124,7 +203,16 @@ namespace ShipCorePersona
             if (__instance?.parent == null || ChipSeated(__instance.parent))
                 return;
 
-            __instance.parent.TryGetComp<CompShipCorePersona>()?.DismissPersona();
+            __instance.parent.TryGetComp<CompShipCorePersona>()?.DeactivatePersona();
+        }
+
+        /// <summary>
+        /// Gravship Voyage 把「取出人格核心」挂在人身上。飞船主脑不提供这项，芯片只从电脑核心取出。
+        /// </summary>
+        public static void PostfixNoExtractFromPersona(ThingComp __instance, ref System.Collections.Generic.IEnumerable<FloatMenuOption> __result)
+        {
+            if (__instance?.parent is Pawn pawn && CorePersonaUtility.IsPersona(pawn))
+                __result = System.Array.Empty<FloatMenuOption>();
         }
 
         public static bool PrefixWake(ThingComp __instance)
@@ -170,6 +258,93 @@ namespace ShipCorePersona
 
             CompShipCorePersona comp = __instance?.parent?.TryGetComp<CompShipCorePersona>();
             ClaimHost(comp);
+        }
+
+        private static bool SeatedCoreHasMind(int id)
+        {
+            ThingDef def = DefDatabase<ThingDef>.GetNamedSilentFail("Ship_ComputerCore");
+            if (def == null)
+                return false;
+
+            foreach (Map map in Find.Maps)
+            {
+                List<Thing> cores = map.listerThings.ThingsOfDef(def);
+                for (int i = 0; i < cores.Count; i++)
+                {
+                    if (ChipSeated(cores[i]) && BoundMindId(cores[i]) == id)
+                        return true;
+                }
+
+                List<Thing> minified = map.listerThings.ThingsInGroup(ThingRequestGroup.MinifiedThing);
+                for (int i = 0; i < minified.Count; i++)
+                {
+                    if (minified[i] is not MinifiedThing mini || mini.InnerThing == null || mini.InnerThing.def != def)
+                        continue;
+                    if (ChipSeated(mini.InnerThing) && BoundMindId(mini.InnerThing) == id)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ThingCarriesMind(Thing thing, int id)
+        {
+            if (thing == null)
+                return false;
+            if (thing is Pawn pawn && PawnCarriesMind(pawn, id))
+                return true;
+            if (thing is MinifiedThing mini && ThingCarriesMind(mini.InnerThing, id))
+                return true;
+            if (ChipCompType == null || ChipCompMind == null || thing is not ThingWithComps withComps)
+                return false;
+
+            for (int i = 0; i < withComps.AllComps.Count; i++)
+            {
+                ThingComp comp = withComps.AllComps[i];
+                if (!ChipCompType.IsInstanceOfType(comp))
+                    continue;
+                if (ReadMindId(ChipCompMind.GetValue(comp), assignIfMissing: false) == id)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool PawnCarriesMind(Pawn pawn, int id)
+        {
+            if (pawn?.health?.hediffSet == null)
+                return false;
+            if (ChipHediffType != null && ChipHediffMind != null)
+            {
+                List<Hediff> hediffs = pawn.health.hediffSet.hediffs;
+                for (int i = 0; i < hediffs.Count; i++)
+                {
+                    if (!ChipHediffType.IsInstanceOfType(hediffs[i]))
+                        continue;
+                    if (ReadMindId(ChipHediffMind.GetValue(hediffs[i]), assignIfMissing: false) == id)
+                        return true;
+                }
+            }
+
+            if (pawn.inventory?.innerContainer == null)
+                return false;
+            for (int i = 0; i < pawn.inventory.innerContainer.Count; i++)
+            {
+                if (ThingCarriesMind(pawn.inventory.innerContainer[i], id))
+                    return true;
+            }
+
+            return pawn.carryTracker != null && ThingCarriesMind(pawn.carryTracker.CarriedThing, id);
+        }
+
+        private static int ReadMindId(object mind, bool assignIfMissing)
+        {
+            if (mind == null)
+                return 0;
+            if (!assignIfMissing)
+                return mind.GetType().GetField("id")?.GetValue(mind) is int raw ? raw : 0;
+            return mind.GetType().GetProperty("Id")?.GetValue(mind) is int id ? id : 0;
         }
 
         private static ThingComp VoyageComp(Thing thing)

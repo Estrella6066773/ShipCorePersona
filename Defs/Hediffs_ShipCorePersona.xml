@@ -4,18 +4,11 @@
   <!-- 用来标记飞船主脑。不能把移动设成 0，否则原版会把她当成倒地并失去知觉，能力就放不出来。 -->
   <HediffDef>
     <defName>ShipCorePersonaBound</defName>
-    <hediffClass>HediffWithComps</hediffClass>
+    <hediffClass>Hediff</hediffClass>
     <label>housed in computer core</label>
-    <description>An artificial intelligence housed in a ship computer core. She appears as a hologram.</description>
+    <description>An artificial intelligence housed in a ship computer core.</description>
     <isBad>false</isBad>
     <everCurableByItem>false</everCurableByItem>
-    <comps>
-      <li Class="HediffCompProperties_Invisibility">
-        <visibleToPlayer>true</visibleToPlayer>
-        <fadeDurationTicks>1</fadeDurationTicks>
-        <affectedByDisruptor>false</affectedByDisruptor>
-      </li>
-    </comps>
     <stages>
       <li>
         <hungerRateFactor>0</hungerRateFactor>

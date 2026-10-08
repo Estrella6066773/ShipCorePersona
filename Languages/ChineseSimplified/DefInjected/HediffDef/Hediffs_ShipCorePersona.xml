@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <ShipCorePersonaBound.label>飞船主脑</ShipCorePersonaBound.label>
-  <ShipCorePersonaBound.description>她是人工智能，寄宿在飞船电脑核心里，以全息影像的样子显现。</ShipCorePersonaBound.description>
+  <ShipCorePersonaBound.description>她是人工智能，寄宿在飞船电脑核心里。</ShipCorePersonaBound.description>
 
   <ShipCorePersonaBandwidth.label>补充机械带宽</ShipCorePersonaBandwidth.label>
   <ShipCorePersonaBandwidth.description>机控中枢提供 6 点机械带宽。这项健康状态再为飞船主脑补上 14 点，加在一起是 20 点。</ShipCorePersonaBandwidth.description>
