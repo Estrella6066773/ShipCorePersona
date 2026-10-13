@@ -11,8 +11,6 @@ namespace ShipCorePersona
     {
         public static PawnKindDef ShipCorePersona;
         public static HediffDef ShipCorePersonaBound;
-        public static HediffDef ShipCorePersonaBandwidth;
-        public static HediffDef ShipCorePersonaChipOffset;
         public static JobDef OperateShipCorePersona;
         public static JobDef StoreShipCoreImplant;
         public static JobDef RetrieveShipCoreImplant;

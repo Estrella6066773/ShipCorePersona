@@ -4,56 +4,21 @@
   <!-- 用来标记飞船主脑。不能把移动设成 0，否则原版会把她当成倒地并失去知觉，能力就放不出来。 -->
   <HediffDef>
     <defName>ShipCorePersonaBound</defName>
-    <hediffClass>Hediff</hediffClass>
+    <hediffClass>ShipCorePersona.Hediff_ShipCorePersonaBound</hediffClass>
     <label>housed in computer core</label>
     <description>An artificial intelligence housed in a ship computer core.</description>
     <isBad>false</isBad>
+    <preventsDeath>true</preventsDeath>
     <everCurableByItem>false</everCurableByItem>
     <stages>
       <li>
         <hungerRateFactor>0</hungerRateFactor>
         <restFallFactor>0</restFallFactor>
         <painFactor>0</painFactor>
-        <overrideMoodBase>0.55</overrideMoodBase>
-      </li>
-    </stages>
-  </HediffDef>
-
-  <!-- 机控中枢自带 6 点机械带宽，这项健康状态再补 14 点，合计 20 点。 -->
-  <HediffDef>
-    <defName>ShipCorePersonaBandwidth</defName>
-    <hediffClass>Hediff</hediffClass>
-    <label>core persona bandwidth</label>
-    <description>Together with the mechlink, this is 20 mech bandwidth.</description>
-    <isBad>false</isBad>
-    <everCurableByItem>false</everCurableByItem>
-    <stages>
-      <li>
-        <statOffsets>
-          <MechBandwidth>14</MechBandwidth>
-        </statOffsets>
-      </li>
-    </stages>
-  </HediffDef>
-
-  <!--
-    Gravship Voyage 的人格芯片自己提供 20 点机械带宽。
-    机控中枢仍要留着，卸掉它会强制断开机械族。
-    芯片也在的时候，用 -6 把机控中枢多出来的 6 点扣回去。
-  -->
-  <HediffDef>
-    <defName>ShipCorePersonaChipOffset</defName>
-    <hediffClass>Hediff</hediffClass>
-    <label>core bandwidth adjustment</label>
-    <description>Adjusts mech bandwidth.</description>
-    <isBad>false</isBad>
-    <everCurableByItem>false</everCurableByItem>
-    <stages>
-      <li>
-        <becomeVisible>false</becomeVisible>
-        <statOffsets>
-          <MechBandwidth>-6</MechBandwidth>
-        </statOffsets>
+        <!-- 心情固定在最高。想法全部不计。同时禁止精神崩溃。 -->
+        <overrideMoodBase>1</overrideMoodBase>
+        <pctAllThoughtNullification>1</pctAllThoughtNullification>
+        <blocksMentalBreaks>true</blocksMentalBreaks>
       </li>
     </stages>
   </HediffDef>

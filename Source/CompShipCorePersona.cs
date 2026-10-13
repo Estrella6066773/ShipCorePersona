@@ -30,8 +30,6 @@ namespace ShipCorePersona
         private List<string> retrievals = new List<string>();
         private List<StoredCoreImplant> storedImplants = new List<StoredCoreImplant>();
 
-        public bool MechlinkTakenOut;
-
         public CompShipCorePersona()
         {
             inner = new ThingOwner<Pawn>(this);
@@ -76,8 +74,8 @@ namespace ShipCorePersona
                 Persona.Notify_DisabledWorkTypesChanged();
                 WakeIfDowned(Persona);
             }
-            CorePersonaUtility.SyncBandwidth(Persona, parent);
             VoyageCompat.ClaimHost(this);
+            CorePersonaUtility.RetireAutoMechlink(Persona);
         }
 
         public override void PostExposeData()
@@ -85,7 +83,6 @@ namespace ShipCorePersona
             base.PostExposeData();
             Scribe_References.Look(ref linked, "personaSpawned");
             Scribe_Deep.Look(ref inner, "personaContainer", this);
-            Scribe_Values.Look(ref MechlinkTakenOut, "mechlinkTakenOut", false);
             Scribe_Collections.Look(ref retrievals, "implantRetrievals", LookMode.Value);
             Scribe_Collections.Look(ref storedImplants, "storedImplants", LookMode.Deep);
             if (Scribe.mode == LoadSaveMode.LoadingVars)
@@ -116,7 +113,7 @@ namespace ShipCorePersona
 
         public override void PostDeSpawn(Map map, DestroyMode mode)
         {
-            DeactivatePersona();
+            DeactivatePersona(mode);
             base.PostDeSpawn(map, mode);
         }
 
@@ -145,7 +142,7 @@ namespace ShipCorePersona
         {
             if (!parent.Spawned)
                 return;
-            if (VoyageCompat.IsLoaded && !VoyageCompat.ChipSeated(parent))
+            if (!VoyageCompat.ChipSeated(parent))
             {
                 DeactivatePersona();
                 return;
@@ -161,7 +158,8 @@ namespace ShipCorePersona
             PlaceBesideCore();
             WakeIfDowned(persona);
             if (parent.IsHashIntervalTick(60))
-                CorePersonaUtility.SyncBandwidth(persona, parent);
+                CorePersonaUtility.RetireAutoMechlink(persona);
+            Hediff_ShipCorePersonaBound.Restore(persona);
 
             if (persona.Spawned)
                 return;
@@ -204,7 +202,7 @@ namespace ShipCorePersona
 
             foreach (Thing carried in ImplantAccess.CarriedImplants(selPawn))
             {
-                if (!ImplantAccess.CanInstall(persona, carried.def))
+                if (!ImplantAccess.CanStore(persona, carried.def))
                     continue;
 
                 Thing item = carried;
@@ -262,7 +260,7 @@ namespace ShipCorePersona
                 return;
             if (!ModsConfig.BiotechActive)
                 return;
-            if (VoyageCompat.IsLoaded && !VoyageCompat.ChipSeated(parent))
+            if (!VoyageCompat.ChipSeated(parent))
             {
                 DeactivatePersona();
                 return;
@@ -291,7 +289,7 @@ namespace ShipCorePersona
         /// 人格核心已经离开，或飞船电脑核心暂时不在地图上。飞船主脑离开地图，收进专属人物池。
         /// 飞船主脑已经不在时什么都不做，避免把飞船电脑核心上的植入物记录清掉。
         /// </summary>
-        public void DeactivatePersona()
+        public void DeactivatePersona(DestroyMode reason = DestroyMode.Vanish)
         {
             Pawn persona = Persona;
             if (persona == null)
@@ -301,7 +299,11 @@ namespace ShipCorePersona
             VoyageCompat.ClearHost(parent, persona);
             int mindId = VoyageCompat.BoundMindId(parent);
             linked = null;
-            GameComponent_PersonaPool.Park(persona, mindId, parent.thingIDNumber);
+            // 飞船把电脑核心收走时，她已经在飞船的人物名单里。名单里再留一份，落地会再生成一次。
+            if (reason == DestroyMode.WillReplace)
+                VoyageCompat.DropFromTravelingGravship(persona);
+            DestroyMode despawn = reason == DestroyMode.WillReplace ? DestroyMode.WillReplace : DestroyMode.Vanish;
+            GameComponent_PersonaPool.Park(persona, mindId, parent.thingIDNumber, despawn);
         }
 
         private void RememberImplants(Pawn persona)
@@ -332,7 +334,7 @@ namespace ShipCorePersona
             {
                 StoredCoreImplant record = storedImplants[i];
                 HediffDef def = DefDatabase<HediffDef>.GetNamedSilentFail(record?.defName);
-                if (def == null)
+                if (def == null || def == HediffDefOf.MechlinkImplant)
                     continue;
 
                 Hediff existing = persona.health.hediffSet.GetFirstHediffOfDef(def);
@@ -351,12 +353,10 @@ namespace ShipCorePersona
                     }
                 }
 
-                if (def == HediffDefOf.MechlinkImplant)
-                    MechlinkTakenOut = false;
             }
 
             PawnComponentsUtility.AddAndRemoveDynamicComponents(persona, false);
-            CorePersonaUtility.SyncBandwidth(persona, parent);
+            persona.mechanitor?.Notify_BandwidthChanged();
         }
 
         private FloatMenuOption ImplantOption(Pawn worker, string label, Action action)

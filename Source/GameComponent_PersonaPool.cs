@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using RimWorld;
 using RimWorld.Planet;
 using Verse;
@@ -54,7 +55,91 @@ namespace ShipCorePersona
             }
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
                 AlignLists();
+                RecoverFromWorld();
+            }
+        }
+
+        /// <summary>
+        /// 飞船主脑被删掉之后，别人身上还指着她。读档时这些引用对不上，心情和关系会报错。
+        /// 只清掉已经对不上的引用。死人还在存档里的关系留下。
+        /// </summary>
+        public static void CleanupUnresolvedLinks()
+        {
+            EachPawn(pawn =>
+            {
+                if (pawn?.relations != null)
+                {
+                    List<DirectPawnRelation> relations = pawn.relations.DirectRelations;
+                    for (int i = relations.Count - 1; i >= 0; i--)
+                    {
+                        if (relations[i].otherPawn != null)
+                            continue;
+                        relations.RemoveAt(i);
+                    }
+                }
+
+                MemoryThoughtHandler memories = pawn?.needs?.mood?.thoughts?.memories;
+                if (memories == null)
+                    return;
+
+                foreach (Thought_Memory memory in memories.Memories.ToList())
+                {
+                    if (memory is Thought_PsychicHarmonizer thought && (thought.harmonizer == null || thought.harmonizer.pawn == null))
+                        memories.RemoveMemory(thought);
+                }
+            });
+        }
+
+        private static void SeverLinks(Pawn persona)
+        {
+            EachPawn(pawn =>
+            {
+                if (pawn == null || pawn == persona)
+                    return;
+
+                if (pawn.relations != null)
+                {
+                    List<DirectPawnRelation> relations = pawn.relations.DirectRelations;
+                    for (int i = relations.Count - 1; i >= 0; i--)
+                    {
+                        DirectPawnRelation relation = relations[i];
+                        if (relation.otherPawn == persona)
+                            pawn.relations.TryRemoveDirectRelation(relation.def, persona);
+                    }
+                }
+
+                MemoryThoughtHandler memories = pawn.needs?.mood?.thoughts?.memories;
+                if (memories == null)
+                    return;
+
+                foreach (Thought_Memory memory in memories.Memories.ToList())
+                {
+                    if (memory is Thought_PsychicHarmonizer thought && (thought.harmonizer == null || thought.harmonizer.pawn == persona || thought.otherPawn == persona))
+                        memories.RemoveMemory(thought);
+                }
+            });
+        }
+
+        private static void EachPawn(System.Action<Pawn> action)
+        {
+            if (Find.Maps != null)
+            {
+                foreach (Map map in Find.Maps)
+                {
+                    List<Pawn> pawns = map.mapPawns.AllPawns.ToList();
+                    for (int i = 0; i < pawns.Count; i++)
+                        action(pawns[i]);
+                }
+            }
+
+            List<Pawn> world = Find.WorldPawns?.AllPawnsAliveOrDead;
+            if (world == null)
+                return;
+
+            for (int i = 0; i < world.Count; i++)
+                action(world[i]);
         }
 
         public override void GameComponentTick()
@@ -79,7 +164,8 @@ namespace ShipCorePersona
                     continue;
                 }
 
-                if (!BuildingAlive(buildingIds[i]))
+                int buildingId = buildingIds[i];
+                if (buildingId != 0 && !BuildingAlive(buildingId))
                     DestroyAt(i);
             }
         }
@@ -89,9 +175,9 @@ namespace ShipCorePersona
             return Get()?.IndexOf(pawn) >= 0;
         }
 
-        public static void Park(Pawn pawn, int mindId, int buildingId)
+        public static void Park(Pawn pawn, int mindId, int buildingId, DestroyMode despawnMode = DestroyMode.Vanish)
         {
-            Get()?.Hold(pawn, mindId, buildingId);
+            Get()?.Hold(pawn, mindId, buildingId, despawnMode);
         }
 
         public static Pawn Take(int mindId, int buildingId)
@@ -104,6 +190,7 @@ namespace ShipCorePersona
             if (pawn == null || pawn.Destroyed)
                 return;
 
+            SeverLinks(pawn);
             GameComponent_PersonaPool pool = Get();
             int index = pool?.IndexOf(pawn) ?? -1;
             if (index >= 0)
@@ -144,7 +231,7 @@ namespace ShipCorePersona
             }
         }
 
-        private void Hold(Pawn pawn, int mindId, int buildingId)
+        private void Hold(Pawn pawn, int mindId, int buildingId, DestroyMode despawnMode)
         {
             if (pawn == null || pawn.Destroyed)
                 return;
@@ -154,13 +241,13 @@ namespace ShipCorePersona
             {
                 mindIds[existing] = mindId;
                 buildingIds[existing] = buildingId;
-                PullOffMap(pawn);
+                PullOffMap(pawn, despawnMode);
                 return;
             }
 
             if (pawn.holdingOwner != null)
                 pawn.holdingOwner.Remove(pawn);
-            PullOffMap(pawn);
+            PullOffMap(pawn, despawnMode);
             if (!pawns.TryAdd(pawn))
             {
                 Log.Error("[ShipCorePersona] 没能把飞船主脑放进专属人物池。");
@@ -169,7 +256,7 @@ namespace ShipCorePersona
 
             mindIds.Add(mindId);
             buildingIds.Add(buildingId);
-            PullOffMap(pawn);
+            PullOffMap(pawn, despawnMode);
         }
 
         private Pawn Release(int mindId, int buildingId)
@@ -222,12 +309,39 @@ namespace ShipCorePersona
             return -1;
         }
 
+        private void RecoverFromWorld()
+        {
+            List<Pawn> world = Find.WorldPawns?.AllPawnsAliveOrDead;
+            if (world == null)
+                return;
+
+            List<Pawn> found = new List<Pawn>();
+            for (int i = 0; i < world.Count; i++)
+            {
+                if (CorePersonaUtility.IsPersona(world[i]))
+                    found.Add(world[i]);
+            }
+
+            for (int i = 0; i < found.Count; i++)
+            {
+                Pawn pawn = found[i];
+                if (pawn == null)
+                    continue;
+                if (Find.WorldPawns.Contains(pawn))
+                    Find.WorldPawns.RemovePawn(pawn);
+                if (pawn.Spawned || pawn.Destroyed || Contains(pawn))
+                    continue;
+                Hold(pawn, 0, 0, DestroyMode.Vanish);
+            }
+        }
+
         private void DestroyAt(int index)
         {
             Pawn pawn = index >= 0 && index < pawns.Count ? pawns[index] : null;
             RemoveAt(index);
             if (pawn == null || pawn.Destroyed)
                 return;
+            SeverLinks(pawn);
             if (Find.WorldPawns.Contains(pawn))
                 Find.WorldPawns.RemovePawn(pawn);
             if (pawn.Spawned)
@@ -249,12 +363,13 @@ namespace ShipCorePersona
                 buildingIds.RemoveAt(index);
         }
 
-        private static void PullOffMap(Pawn pawn)
+        private static void PullOffMap(Pawn pawn, DestroyMode mode)
         {
             if (pawn.Spawned)
             {
                 pawn.jobs?.StopAll(false);
-                pawn.DeSpawn();
+                // WillReplace 表示她是跟着飞船走的。默认的 Vanish 会让原版把她指挥的机械族全部取消征召。
+                pawn.DeSpawn(mode);
             }
 
             if (Find.WorldPawns != null && Find.WorldPawns.Contains(pawn))
@@ -310,7 +425,7 @@ namespace ShipCorePersona
                 }
             }
 
-            return false;
+            return VoyageCompat.GravshipHoldsBuilding(thingId);
         }
     }
 }

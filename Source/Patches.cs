@@ -32,6 +32,18 @@ namespace ShipCorePersona
     }
 
     /// <summary>
+    /// 旧档里的机控中枢卸掉时，原版会断开她指挥的机械族。人格芯片还在，机械族保持连接。
+    /// </summary>
+    [HarmonyPatch(typeof(Pawn_MechanitorTracker), nameof(Pawn_MechanitorTracker.Notify_MechlinkRemoved))]
+    public static class Patch_ChipKeepsMechs
+    {
+        public static bool Prefix(Pawn ___pawn)
+        {
+            return !(CorePersonaUtility.IsPersona(___pawn) && CorePersonaUtility.HasVoyageChip(___pawn));
+        }
+    }
+
+    /// <summary>
     /// 机械族的「选择监督者」在监督者还没生成时是灰的。这个按钮要能重新选中飞船主脑。
     /// </summary>
     [HarmonyPatch(typeof(MechanitorUtility), nameof(MechanitorUtility.GetMechGizmos))]
@@ -151,7 +163,7 @@ namespace ShipCorePersona
             if (!CorePersonaUtility.IsPersona(__instance))
                 return true;
 
-            if (phase == DrawPhase.Draw)
+            if (phase == DrawPhase.Draw && !PersonaCommand.DrawShipRange(__instance))
                 __instance.mechanitor?.DrawCommandRadius();
             return false;
         }
@@ -350,7 +362,7 @@ namespace ShipCorePersona
     }
 
     /// <summary>
-    /// 离开地图时，原版会把殖民者放进世界人物池。飞船主脑不进世界人物池，只留在专属人物池里。
+    /// 离开地图时，原版会把殖民者放进世界人物池，并标成失踪。飞船主脑不进世界人物池。
     /// </summary>
     [HarmonyPatch(typeof(WorldPawns), nameof(WorldPawns.PassToWorld))]
     public static class Patch_PersonaSkipsWorldPawnPool
@@ -359,10 +371,101 @@ namespace ShipCorePersona
         {
             if (!CorePersonaUtility.IsPersona(pawn))
                 return;
-            if (!pawn.Spawned && !GameComponent_PersonaPool.Contains(pawn))
-                return;
-            if (Find.WorldPawns.Contains(pawn))
+            if (Find.WorldPawns != null && Find.WorldPawns.Contains(pawn))
                 Find.WorldPawns.RemovePawn(pawn);
+        }
+    }
+
+    /// <summary>
+    /// 人格核心不在地图上时，原版把对不上的人标成失踪。飞船主脑不标成失踪。
+    /// </summary>
+    [HarmonyPatch(typeof(SocialCardUtility), nameof(SocialCardUtility.GetPawnSituationLabel))]
+    public static class Patch_PersonaNotMarkedMissing
+    {
+        public static void Postfix(Pawn pawn, ref string __result)
+        {
+            if (!CorePersonaUtility.IsPersona(pawn))
+                return;
+            if (__result == "Missing".Translate())
+                __result = "";
+        }
+    }
+
+    /// <summary>
+    /// 她站在电脑核心那一格上。火灾、真空、极端温度、毒气和爆炸都打在这一格。
+    /// 这些伤害不落在她身上，她也不会死。人格核心被删除时用 Destroy 移除她，不走 Kill。
+    /// </summary>
+    [HarmonyPatch(typeof(Pawn), nameof(Pawn.PreApplyDamage))]
+    public static class Patch_PersonaIgnoresDamage
+    {
+        public static bool Prefix(Pawn __instance, out bool absorbed)
+        {
+            if (!CorePersonaUtility.IsPersona(__instance))
+            {
+                absorbed = false;
+                return true;
+            }
+
+            absorbed = true;
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn), nameof(Pawn.Kill))]
+    public static class Patch_PersonaDoesNotDie
+    {
+        public static bool Prefix(Pawn __instance)
+        {
+            return !CorePersonaUtility.IsPersona(__instance);
+        }
+    }
+
+    [HarmonyPatch(typeof(StatExtension), nameof(StatExtension.GetStatValue))]
+    public static class Patch_PersonaEnvironmentStats
+    {
+        private static StatDef vacuumResistance;
+        private static bool vacuumChecked;
+
+        public static void Postfix(Thing thing, StatDef stat, ref float __result)
+        {
+            if (!EnvironmentStat(stat))
+                return;
+            if (!(thing is Pawn pawn) || !CorePersonaUtility.IsPersona(pawn))
+                return;
+
+            if (stat == StatDefOf.Flammability)
+                __result = 0f;
+            else if (stat == StatDefOf.ComfyTemperatureMin)
+                __result = -10000f;
+            else if (stat == StatDefOf.ComfyTemperatureMax)
+                __result = 10000f;
+            else
+                __result = 1f;
+        }
+
+        private static bool EnvironmentStat(StatDef stat)
+        {
+            if (stat == null)
+                return false;
+            if (stat == StatDefOf.Flammability || stat == StatDefOf.ComfyTemperatureMin || stat == StatDefOf.ComfyTemperatureMax)
+                return true;
+            if (stat == StatDefOf.ToxicResistance || stat == StatDefOf.ToxicEnvironmentResistance)
+                return true;
+            return stat == VacuumResistance;
+        }
+
+        private static StatDef VacuumResistance
+        {
+            get
+            {
+                if (!vacuumChecked)
+                {
+                    vacuumChecked = true;
+                    vacuumResistance = DefDatabase<StatDef>.GetNamedSilentFail("VacuumResistance");
+                }
+
+                return vacuumResistance;
+            }
         }
     }
 
@@ -376,12 +479,157 @@ namespace ShipCorePersona
         }
     }
 
+    [HarmonyPatch(typeof(Game), nameof(Game.FinalizeInit))]
+    public static class Patch_CleanupPersonaLinksAfterLoad
+    {
+        public static void Postfix()
+        {
+            GameComponent_PersonaPool.CleanupUnresolvedLinks();
+        }
+    }
+
+    /// <summary>
+    /// 协调器的主人已经不在存档里时，心情条目仍会去读她。这里改成不读，避免打开需求界面时崩溃。
+    /// </summary>
+    [HarmonyPatch(typeof(Thought_PsychicHarmonizer), "get_LabelCap")]
+    public static class Patch_HarmonizerLabelWithoutPawn
+    {
+        public static bool Prefix(Thought_PsychicHarmonizer __instance, ref string __result)
+        {
+            if (__instance.harmonizer?.pawn != null && !__instance.harmonizer.pawn.Destroyed)
+                return true;
+
+            __result = __instance.def?.label ?? string.Empty;
+            return false;
+        }
+    }
+
     [HarmonyPatch(typeof(InspirationHandler), nameof(InspirationHandler.TryStartInspiration))]
     public static class Patch_PersonaNoInspiration
     {
         public static bool Prefix(InspirationHandler __instance)
         {
             return !CorePersonaUtility.IsPersona(__instance.pawn);
+        }
+    }
+
+    /// <summary>
+    /// 机械族已经收进飞船。地图放弃时原版会按「留下」拆掉监管关系，并提示失去控制。
+    /// 跟着飞船离开的机械族保持监管，不提示。
+    /// </summary>
+    [HarmonyPatch(typeof(Pawn_RelationsTracker), "RemoveRelationsOnLeftBehind")]
+    public static class Patch_MechsAboardKeepOverseer
+    {
+        private static readonly System.Reflection.FieldInfo TravelingGravshipField =
+            AccessTools.Field(typeof(WorldComponent_GravshipController), "gravship");
+
+        public static bool Prefix(Pawn ___pawn, List<DirectPawnRelation> ___directRelations)
+        {
+            if (___pawn?.relations == null || ___directRelations == null)
+                return true;
+            if (!AnyMechAboard(___pawn, ___directRelations))
+                return true;
+
+            for (int num = ___directRelations.Count - 1; num >= 0; num--)
+            {
+                DirectPawnRelation relation = ___directRelations[num];
+                if (relation?.def == null || !relation.def.removeOnLeftBehind)
+                    continue;
+                if (relation.def == PawnRelationDefOf.Overseer && MechAboard(___pawn, relation.otherPawn))
+                    continue;
+
+                Pawn otherPawn = relation.otherPawn;
+                ___pawn.relations.RemoveDirectRelation(relation);
+                relation.def.Worker.Notify_PostRemovedLeftBehind(___pawn, otherPawn);
+            }
+
+            return false;
+        }
+
+        private static bool AnyMechAboard(Pawn owner, List<DirectPawnRelation> relations)
+        {
+            for (int i = 0; i < relations.Count; i++)
+            {
+                DirectPawnRelation relation = relations[i];
+                if (relation?.def == PawnRelationDefOf.Overseer && relation.def.removeOnLeftBehind && MechAboard(owner, relation.otherPawn))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool MechAboard(Pawn owner, Pawn other)
+        {
+            Pawn mech = MechanoidOf(owner, other);
+            if (mech == null || mech.Dead || mech.Destroyed)
+                return false;
+            if (mech.BeingTransportedOnGravship)
+                return true;
+
+            Gravship ship = Current.Game?.Gravship;
+            if (ship != null && ship.ContainsPawn(mech))
+                return true;
+
+            object traveling = TravelingGravshipField?.GetValue(Find.World?.GetComponent<WorldComponent_GravshipController>());
+            return traveling is Gravship gravship && gravship.ContainsPawn(mech);
+        }
+
+        private static Pawn MechanoidOf(Pawn first, Pawn second)
+        {
+            if (first?.RaceProps?.IsMechanoid == true)
+                return first;
+            if (second?.RaceProps?.IsMechanoid == true)
+                return second;
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 读档时先生成人物，再生成建筑。飞船主脑站在不可通行的电脑核心上，原版会把核心退成材料。
+    /// 核心落地前先把她挪到占地外面，核心生成后会把她挪回去。
+    /// </summary>
+    [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.SpawnBuildingAsPossible))]
+    public static class Patch_CoreNotRefundedOnLoad
+    {
+        public static void Prefix(Building building, Map map)
+        {
+            if (map == null || building?.def == null || building.def.passability != Traversability.Impassable)
+                return;
+            if (building.TryGetComp<CompShipCorePersona>() == null)
+                return;
+
+            CellRect rect = building.OccupiedRect();
+            IntVec3 outside = CellOutside(rect, map);
+            foreach (IntVec3 cell in rect)
+            {
+                if (!cell.InBounds(map))
+                    continue;
+
+                List<Thing> things = cell.GetThingList(map);
+                for (int i = things.Count - 1; i >= 0; i--)
+                {
+                    if (things[i] is Pawn pawn && CorePersonaUtility.IsPersona(pawn))
+                        pawn.Position = outside;
+                }
+            }
+        }
+
+        private static IntVec3 CellOutside(CellRect rect, Map map)
+        {
+            IntVec3[] tries =
+            {
+                new IntVec3(rect.maxX + 1, 0, rect.minZ),
+                new IntVec3(rect.minX - 1, 0, rect.minZ),
+                new IntVec3(rect.minX, 0, rect.maxZ + 1),
+                new IntVec3(rect.minX, 0, rect.minZ - 1)
+            };
+            for (int i = 0; i < tries.Length; i++)
+            {
+                if (tries[i].InBounds(map))
+                    return tries[i];
+            }
+
+            return map.Center;
         }
     }
 }

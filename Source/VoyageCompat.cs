@@ -49,6 +49,13 @@ namespace ShipCorePersona
             harmony.Patch(
                 AccessTools.Method(CoreType, "TryWithdraw"),
                 postfix: new HarmonyMethod(typeof(VoyageCompat), nameof(PostfixChipLeft)));
+            if (ChipHediffType != null)
+            {
+                harmony.Patch(
+                    AccessTools.Method(ChipHediffType, "PostRemoved"),
+                    prefix: new HarmonyMethod(typeof(VoyageCompat), nameof(PrefixRememberMechGroups)));
+            }
+
             System.Type extract = AccessTools.TypeByName("GravshipVoyage.CompChipExtract");
             if (extract != null)
             {
@@ -114,7 +121,7 @@ namespace ShipCorePersona
         }
 
         /// <summary>
-        /// 人格核心还在世界上就返回 true。飞船电脑核心被收起时，人格芯片仍留在这栋飞船电脑核心里，也算还在世界上。
+        /// 人格核心还在世界上就返回 true。飞船电脑核心被收起，或正在随逆重飞船转移时，人格芯片仍留在这栋飞船电脑核心里，也算还在世界上。
         /// </summary>
         public static bool MindStillExists(int id)
         {
@@ -123,6 +130,8 @@ namespace ShipCorePersona
             if (StillInTheWorldMethod != null && StillInTheWorldMethod.Invoke(null, new object[] { id }) is bool alive && alive)
                 return true;
             if (SeatedCoreHasMind(id))
+                return true;
+            if (GravshipStillCarriesMind(id))
                 return true;
 
             foreach (Caravan caravan in Find.WorldObjects.Caravans)
@@ -198,6 +207,26 @@ namespace ShipCorePersona
                 HostField.SetValue(voyage, null);
         }
 
+        private static readonly FieldInfo GravshipPawnsField = AccessTools.Field(typeof(Gravship), "pawns");
+        private static readonly FieldInfo GravshipThingsField = AccessTools.Field(typeof(Gravship), "things");
+        private static readonly FieldInfo TravelingGravshipField = AccessTools.Field(typeof(WorldComponent_GravshipController), "gravship");
+
+        /// <summary>
+        /// 起飞时她会被算进飞船的人物名单。专属人物池已经收下她，名单里不能再留一份。
+        /// </summary>
+        public static void DropFromTravelingGravship(Pawn pawn)
+        {
+            if (pawn == null)
+                return;
+
+            Gravship ship = Current.Game?.Gravship;
+            if (ship == null || !ship.ContainsPawn(pawn))
+                return;
+
+            if (GravshipPawnsField?.GetValue(ship) is System.Collections.IDictionary pawns)
+                pawns.Remove(pawn);
+        }
+
         public static void PostfixChipLeft(ThingComp __instance)
         {
             if (__instance?.parent == null || ChipSeated(__instance.parent))
@@ -229,8 +258,16 @@ namespace ShipCorePersona
         public static void PostfixAttach(ThingComp __instance)
         {
             CompShipCorePersona comp = __instance?.parent?.TryGetComp<CompShipCorePersona>();
-            if (comp?.Persona != null)
-                CorePersonaUtility.SyncBandwidth(comp.Persona, comp.parent);
+            if (comp?.Persona == null)
+                return;
+
+            CorePersonaUtility.RetireAutoMechlink(comp.Persona);
+        }
+
+        public static void PrefixRememberMechGroups(Hediff __instance)
+        {
+            if (CorePersonaUtility.IsPersona(__instance?.pawn))
+                Hediff_ShipCorePersonaBound.Remember(__instance.pawn);
         }
 
         public static void PrefixExpose(ThingComp __instance, ref Pawn __state)
@@ -286,6 +323,79 @@ namespace ShipCorePersona
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 逆重飞船转移时，飞船电脑核心在飞船物体里，不在地图上。
+        /// </summary>
+        private static bool GravshipStillCarriesMind(int id)
+        {
+            return GravshipHolds(core => SeatedMindId(core) == id);
+        }
+
+        public static bool GravshipHoldsBuilding(int thingId)
+        {
+            if (thingId == 0)
+                return false;
+            return GravshipHolds(thing => thing != null && !thing.Destroyed && thing.thingIDNumber == thingId);
+        }
+
+        private static bool GravshipHolds(System.Func<Thing, bool> match)
+        {
+            bool found = false;
+            VisitGravships(ship =>
+            {
+                if (found || GravshipThingsField?.GetValue(ship) is not System.Collections.IDictionary things)
+                    return;
+                foreach (object key in things.Keys)
+                {
+                    if (key is Thing thing && HoldsMatch(thing, match))
+                    {
+                        found = true;
+                        return;
+                    }
+                }
+            });
+            return found;
+        }
+
+        private static bool HoldsMatch(Thing thing, System.Func<Thing, bool> match)
+        {
+            if (thing != null && match(thing))
+                return true;
+            return thing is MinifiedThing mini && mini.InnerThing != null && match(mini.InnerThing);
+        }
+
+        private static void VisitGravships(System.Action<Gravship> visit)
+        {
+            Gravship current = Current.Game?.Gravship;
+            Gravship traveling = TravelingGravshipField?.GetValue(Find.World?.GetComponent<WorldComponent_GravshipController>()) as Gravship;
+            if (current != null && !current.Destroyed)
+                visit(current);
+            if (traveling != null && traveling != current && !traveling.Destroyed)
+                visit(traveling);
+            if (Find.WorldObjects == null)
+                return;
+
+            List<WorldObject> worldObjects = Find.WorldObjects.AllWorldObjects;
+            for (int i = 0; i < worldObjects.Count; i++)
+            {
+                if (worldObjects[i] is not Gravship ship || ship == current || ship == traveling || ship.Destroyed)
+                    continue;
+                visit(ship);
+            }
+        }
+
+        private static int SeatedMindId(Thing core)
+        {
+            if (!ChipSeated(core))
+                return 0;
+
+            ThingComp voyage = VoyageComp(core);
+            int id = ReadMindId(MindField?.GetValue(voyage), assignIfMissing: false);
+            if (id != 0)
+                return id;
+            return BoundIdField?.GetValue(voyage) is int boundId ? boundId : 0;
         }
 
         private static bool ThingCarriesMind(Thing thing, int id)

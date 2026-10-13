@@ -6,9 +6,8 @@ using Verse;
 namespace ShipCorePersona
 {
     /// <summary>
-    /// 认出飞船主脑，并把机械带宽维持在 20 点。
-    /// 玩家自己取出机控中枢之后，不要自动把机控中枢装回去。
-    /// 除此之外不要卸掉机控中枢，卸掉会断开她和机械族的联系。
+    /// 认出飞船主脑。机械师身份和 20 点机械带宽由 Gravship Voyage 的人格芯片提供。
+    /// 旧档里自动加上的机控中枢要卸掉。卸的时候人格芯片还在，机械族不能断开。
     /// </summary>
     public static class CorePersonaUtility
     {
@@ -47,75 +46,61 @@ namespace ShipCorePersona
             return chip != null && pawn?.health?.hediffSet?.HasHediff(chip) == true;
         }
 
-        public static void SyncBandwidth(Pawn persona, Thing core)
+        public static void RetireAutoMechlink(Pawn persona)
         {
-            if (persona?.health == null)
+            if (persona?.health == null || !HasVoyageChip(persona))
                 return;
 
-            bool voyageLoaded = VoyageCompat.IsLoaded;
-            bool chipOnPersona = HasVoyageChip(persona);
-            bool chipSeatedInCore = voyageLoaded && VoyageCompat.ChipSeated(core);
-            bool mechlinkTakenOut = core?.TryGetComp<CompShipCorePersona>()?.MechlinkTakenOut == true;
-
-            if (!mechlinkTakenOut && (chipOnPersona || !voyageLoaded || chipSeatedInCore))
-                EnsureHediff(persona, HediffDefOf.MechlinkImplant, onBrain: true);
-
-            bool hasMechlink = persona.health.hediffSet.HasHediff(HediffDefOf.MechlinkImplant);
-            if (chipOnPersona && hasMechlink)
+            Hediff mechlink = persona.health.hediffSet.GetFirstHediffOfDef(HediffDefOf.MechlinkImplant);
+            if (mechlink != null)
             {
-                EnsureHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaChipOffset, onBrain: false);
-                RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaBandwidth);
-            }
-            else if (hasMechlink && (!voyageLoaded || chipSeatedInCore))
-            {
-                EnsureHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaBandwidth, onBrain: false);
-                RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaChipOffset);
-            }
-            else
-            {
-                RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaBandwidth);
-                RemoveHediff(persona, ShipCorePersonaDefOf.ShipCorePersonaChipOffset);
-                if (voyageLoaded && !chipSeatedInCore && !chipOnPersona)
-                    RemoveHediff(persona, HediffDefOf.MechlinkImplant);
+                persona.health.RemoveHediff(mechlink);
+                PawnComponentsUtility.AddAndRemoveDynamicComponents(persona, false);
+                persona.mechanitor?.Notify_BandwidthChanged();
             }
 
-            PawnComponentsUtility.AddAndRemoveDynamicComponents(persona, false);
-            persona.mechanitor?.Notify_BandwidthChanged();
+            // 卸掉机控中枢时原版会重算分组。分组要在这之后装回去。
+            Hediff_ShipCorePersonaBound.Restore(persona);
         }
 
         public static void TransferMechs(Pawn from, Pawn to)
         {
-            if (from == null || to == null || from == to || from.mechanitor == null || to.mechanitor == null)
+            if (from == null || to == null || from == to)
+                return;
+
+            // 原版交接会把机械族全部放进第一组。分组先记在飞船主脑身上，芯片接上后再装回去。
+            Hediff_ShipCorePersonaBound.RememberFrom(to, from);
+            if (from.mechanitor == null)
                 return;
 
             List<Pawn> mechs = from.mechanitor.ControlledPawns.ToList();
+            List<MechanitorControlGroup> groups = from.mechanitor.controlGroups;
+            for (int i = 0; groups != null && i < groups.Count; i++)
+            {
+                List<AssignedMech> assigned = groups[i]?.AssignedMechs;
+                for (int j = 0; assigned != null && j < assigned.Count; j++)
+                {
+                    Pawn mech = assigned[j]?.pawn;
+                    if (mech != null && !mechs.Contains(mech))
+                        mechs.Add(mech);
+                }
+            }
+
             for (int i = 0; i < mechs.Count; i++)
             {
                 Pawn mech = mechs[i];
                 if (mech == null || mech.Dead)
                     continue;
 
+                from.mechanitor.UnassignPawnFromAnyControlGroup(mech);
                 from.relations?.TryRemoveDirectRelation(PawnRelationDefOf.Overseer, mech);
                 mech.OverseerSubject?.Notify_DisconnectedFromOverseer();
-                if (mech.GetOverseer() != to)
+                if (to.relations != null && mech.GetOverseer() != to)
                     to.relations.AddDirectRelation(PawnRelationDefOf.Overseer, mech);
-                to.mechanitor.AssignPawnControlGroup(mech, null);
             }
 
             from.mechanitor.Notify_BandwidthChanged();
-            to.mechanitor.Notify_BandwidthChanged();
-        }
-
-        private static void EnsureHediff(Pawn pawn, HediffDef def, bool onBrain)
-        {
-            if (def == null || pawn.health.hediffSet.HasHediff(def))
-                return;
-
-            BodyPartRecord part = null;
-            if (onBrain)
-                part = BrainOf(pawn);
-
-            pawn.health.AddHediff(def, part);
+            to.mechanitor?.Notify_BandwidthChanged();
         }
 
         public static BodyPartRecord BrainOf(Pawn pawn)
@@ -124,16 +109,6 @@ namespace ShipCorePersona
             if (brain == null)
                 return null;
             return pawn.RaceProps?.body?.GetPartsWithDef(brain).FirstOrDefault();
-        }
-
-        private static void RemoveHediff(Pawn pawn, HediffDef def)
-        {
-            if (def == null)
-                return;
-
-            Hediff hediff = pawn.health.hediffSet.GetFirstHediffOfDef(def);
-            if (hediff != null)
-                pawn.health.RemoveHediff(hediff);
         }
     }
 }

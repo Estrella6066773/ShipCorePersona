@@ -3,7 +3,7 @@
   <ShipCorePersona_Draft>征召</ShipCorePersona_Draft>
   <ShipCorePersona_DraftDesc>征召这台飞船电脑核心里的飞船主脑。她不能移动。</ShipCorePersona_DraftDesc>
   <ShipCorePersona_MissingIngredient>缺少手术材料</ShipCorePersona_MissingIngredient>
-  <ShipCorePersona_NeedsHeavyOrSubstructure>必须放在重型地面上，或放在逆重飞船基架上</ShipCorePersona_NeedsHeavyOrSubstructure>
+  <ShipCorePersona_NeedsHeavyOrSubstructure>要放在重型地面上，或放在逆重飞船基架上</ShipCorePersona_NeedsHeavyOrSubstructure>
   <ShipCorePersona_StoreImplant>放入{0}</ShipCorePersona_StoreImplant>
   <ShipCorePersona_RetrieveImplant>取出{0}</ShipCorePersona_RetrieveImplant>
 </LanguageData>

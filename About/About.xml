@@ -6,12 +6,13 @@
   <modVersion>1.0.0</modVersion>
   <supportedVersions>
     <li>1.6</li>
+    <li>1.7</li>
   </supportedVersions>
-  <description>一名人工智能寄宿在飞船电脑核心里，她是机械师。她的幼年背景是人格核心，成年背景是飞船主脑。成年背景让她的手工达到 10 点。她有 20 点机械带宽。玩家可以征召她，她也可以使用机械师能力。机械师的植入物可以放进飞船电脑核心，也可以从飞船电脑核心里取出。
+    <description>本模组依赖 Gravship Voyage。飞船电脑核心里寄宿着一名人工智能。她的机械师身份和 20 点机械带宽来自人格芯片。玩家可以通过她使用机械师的能力。幼年背景写的是人格核心，成年背景写的是飞船主脑。成年背景给她加上 10 点手工。玩家把机械师植入物放进飞船电脑核心，也可以再从里面取出来。
 
-飞船电脑核心可以盖在屋顶下面。飞船电脑核心要连上一艘逆重飞船，它所占的每一格都得在这艘船的基架上。
+屋顶下面也能盖飞船电脑核心。飞船电脑核心所占的格子都落在同一艘逆重飞船的基架上，这台核心就连上了这艘船。
 
-本模组可以单独启用。与 Gravship Voyage 一起启用时，本模组用飞船主脑替换 Gravship Voyage 原本会随机生成的机械师。Gravship Voyage 已经提供的机械族按钮，本模组不再重复提供这些按钮。</description>
+本模组用飞船主脑换掉 Gravship Voyage 原本会随机生成的机械师。Gravship Voyage 已经放出的机械族按钮，本模组不再放第二次。</description>
   <modDependencies>
     <li>
       <packageId>brrainz.harmony</packageId>
@@ -22,6 +23,11 @@
     <li>
       <packageId>Ludeon.RimWorld.Biotech</packageId>
       <displayName>Biotech</displayName>
+    </li>
+    <li>
+      <packageId>asunib.GravshipVoyage</packageId>
+      <displayName>Gravship Voyage</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/3790613573</steamWorkshopUrl>
     </li>
   </modDependencies>
   <loadAfter>

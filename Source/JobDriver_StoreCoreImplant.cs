@@ -21,7 +21,7 @@ namespace ShipCorePersona
             this.FailOn(() =>
             {
                 CompShipCorePersona comp = Core?.TryGetComp<CompShipCorePersona>();
-                return comp?.Persona == null || Item == null || !ImplantAccess.CanInstall(comp.Persona, Item.def);
+                return comp?.Persona == null || Item == null || !ImplantAccess.CanStore(comp.Persona, Item.def);
             });
 
             yield return Toils_Goto.GotoThing(TargetIndex.A, PathEndMode.Touch);
@@ -32,7 +32,7 @@ namespace ShipCorePersona
                 {
                     CompShipCorePersona comp = Core?.TryGetComp<CompShipCorePersona>();
                     if (comp != null && Item != null)
-                        ImplantAccess.Install(comp, Item);
+                        ImplantAccess.Store(comp, Item);
                 },
                 defaultCompleteMode = ToilCompleteMode.Instant
             };

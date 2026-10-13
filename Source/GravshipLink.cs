@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using RimWorld;
+using RimWorld.Planet;
 using Verse;
 
 namespace ShipCorePersona
@@ -102,6 +104,55 @@ namespace ShipCorePersona
                 }
             }
 
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 降落过场的飞船物体已经不在时，原版结束不了这次过场。菜单里的保存和选中后的操作栏会一直不画。
+    /// 飞船或引擎数据对不上时，直接结束过场。
+    /// </summary>
+    [HarmonyPatch(typeof(WorldComponent_GravshipController), "FinalizeInit")]
+    public static class Patch_StuckGravshipCutscene
+    {
+        private static readonly FieldInfo GravshipField = AccessTools.Field(typeof(WorldComponent_GravshipController), "gravship");
+        private static readonly FieldInfo CutsceneField = AccessTools.Field(typeof(WorldComponent_GravshipController), "cutsceneInProgress");
+
+        public static void Postfix(WorldComponent_GravshipController __instance, bool fromLoad)
+        {
+            if (!fromLoad || !WorldComponent_GravshipController.CutsceneInProgress || GravshipReady(__instance))
+                return;
+
+            Release(__instance);
+        }
+
+        public static bool GravshipReady(WorldComponent_GravshipController controller)
+        {
+            if (GravshipField?.GetValue(controller) is not Gravship ship)
+                return false;
+            return ship.Engine != null && ship.Engine.launchInfo != null;
+        }
+
+        public static void Release(WorldComponent_GravshipController controller)
+        {
+            CutsceneField?.SetValue(null, false);
+            GravshipField?.SetValue(controller, null);
+            if (Find.ScreenshotModeHandler != null)
+                Find.ScreenshotModeHandler.Active = false;
+            if (Current.Game != null)
+                Current.Game.Gravship = null;
+        }
+    }
+
+    [HarmonyPatch(typeof(WorldComponent_GravshipController), "LandingEnded")]
+    public static class Patch_LandingEndedWithoutEngine
+    {
+        public static bool Prefix(WorldComponent_GravshipController __instance)
+        {
+            if (Patch_StuckGravshipCutscene.GravshipReady(__instance))
+                return true;
+
+            Patch_StuckGravshipCutscene.Release(__instance);
             return false;
         }
     }

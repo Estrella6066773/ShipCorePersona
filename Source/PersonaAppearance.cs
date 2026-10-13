@@ -63,7 +63,7 @@ namespace ShipCorePersona
         /// <summary>
         /// 飞船主脑的名字用人格核心上的名字。人格核心上已经有名字，就用那个名字。
         /// 人格芯片还在飞船电脑核心里、名字还空着时，让人格核心取一次名字，飞船主脑用同一个名字。
-        /// 没有 Gravship Voyage 时，用幼年背景的标题「人格核心」给飞船主脑起名。
+        /// 人格核心上还没有名字时，用幼年背景的标题「人格核心」给飞船主脑起名。
         /// </summary>
         public static void ApplyCoreName(Pawn persona, Thing core)
         {
