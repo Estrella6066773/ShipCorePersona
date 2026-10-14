@@ -68,6 +68,7 @@ namespace ShipCorePersona
             if (Persona != null)
             {
                 PersonaAppearance.EnsureIdentity(Persona);
+                PersonaAppearance.EnsureXenotype(Persona);
                 PersonaAppearance.EnsureBodyType(Persona);
                 PersonaAppearance.ClearInvisibility(Persona);
                 PersonaAppearance.ApplyCoreName(Persona, parent);
@@ -278,6 +279,7 @@ namespace ShipCorePersona
             }
 
             PersonaAppearance.ApplyCoreName(persona, parent);
+            PersonaAppearance.EnsureXenotype(persona);
             persona.SetFaction(Faction.OfPlayer);
             linked = persona;
             if (generated)
@@ -295,6 +297,7 @@ namespace ShipCorePersona
             if (persona == null)
                 return;
 
+            PersonaAppearance.EnsureXenotype(persona);
             RememberImplants(persona);
             VoyageCompat.ClearHost(parent, persona);
             int mindId = VoyageCompat.BoundMindId(parent);

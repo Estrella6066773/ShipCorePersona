@@ -13,6 +13,7 @@ namespace ShipCorePersona
     /// 体型从「女性」「纤细」「魁梧」里取一个，不取「肥胖」。
     /// 生成请求不带发色、肤色和衣物材料。发色和肤色等生成完再写上。生成完再把她的衣服换成一套合成纤维的裤子和衬衫。
     /// 名字不在这里取。调用方沿用人格核心上已有的名字。
+    /// 异种人是核心人格。EnsureXenotype 在生成、读档、从核心取出、再放回去时把她收成这个异种人，并清掉异种基因和系谱基因。
     /// </summary>
     public static class PersonaAppearance
     {
@@ -34,17 +35,129 @@ namespace ShipCorePersona
             request.OnlyUseForcedBackstories = true;
             request.AllowedDevelopmentalStages = DevelopmentalStage.Adult;
             if (ModsConfig.BiotechActive)
-                request.ForcedXenotype = XenotypeDefOf.Baseliner;
+                request.ForcedXenotype = ShipCorePersonaDefOf.ShipCorePersonaXenotype;
             if (Faction.OfPlayer?.ideos?.PrimaryIdeo != null)
                 request.FixedIdeo = Faction.OfPlayer.ideos.PrimaryIdeo;
 
             Pawn persona = PawnGenerator.GeneratePawn(request);
+            EnsureXenotype(persona);
             EnsureIdentity(persona);
             ApplyAppearance(persona);
             ClearInjuriesAndTraits(persona);
             EnsureColonistComponents(persona);
             persona.health.AddHediff(ShipCorePersonaDefOf.ShipCorePersonaBound);
             return persona;
+        }
+
+        /// <summary>
+        /// 把飞船主脑收成核心人格，并清掉异种基因和系谱基因。不往基因列表里加基因。
+        /// 调用处：PersonaAppearance.Generate、CompShipCorePersona.PostSpawnSetup、EnsurePersona（从人物池放回核心）、DeactivatePersona（从核心收进人物池）、GameComponent_PersonaPool.LoadedGame（读档结束）。
+        /// Pawn_GeneTracker.SetXenotype 在定义的基因列表为空时仍记下这个异种人，不会改回基线人。
+        /// 读档时 Pawn_GeneTracker.ExposeData 只有异种人引用是空的才写成 Baseliner。
+        /// PawnGenerator.GenerateGenes 在 SetXenotype 之后仍会补上肤色和发色两种系谱基因，所以这里要再清一次。
+        /// 清基因会走到 Notify_GenesChanged，可能改写发色、肤色、体型、头型和技能热情。外观和热情先记下，清完再写回。
+        /// 技能等级、背景、机械师身份和植入物不在这里改。
+        /// </summary>
+        public static void EnsureXenotype(Pawn persona)
+        {
+            if (!ModsConfig.BiotechActive || persona == null)
+                return;
+
+            if (persona.genes == null)
+                persona.genes = new Pawn_GeneTracker(persona);
+
+            if (AlreadyCorePersona(persona))
+                return;
+
+            Color hair = default;
+            Color skinBase = default;
+            Color? skinOverride = null;
+            BodyTypeDef body = null;
+            HeadTypeDef head = null;
+            HairDef hairDef = null;
+            FurDef fur = null;
+            BeardDef beard = null;
+            bool restoreLook = persona.story != null;
+            if (restoreLook)
+            {
+                hair = persona.story.HairColor;
+                skinBase = persona.story.SkinColorBase;
+                skinOverride = persona.story.skinColorOverride;
+                body = persona.story.bodyType;
+                head = persona.story.headType;
+                hairDef = persona.story.hairDef;
+                fur = persona.story.furDef;
+                beard = persona.style?.beardDef;
+            }
+
+            List<SkillDef> skillDefs = null;
+            List<Passion> passions = null;
+            if (persona.skills?.skills != null)
+            {
+                skillDefs = new List<SkillDef>();
+                passions = new List<Passion>();
+                for (int i = 0; i < persona.skills.skills.Count; i++)
+                {
+                    SkillRecord skill = persona.skills.skills[i];
+                    if (skill?.def == null)
+                        continue;
+                    skillDefs.Add(skill.def);
+                    passions.Add(skill.passion);
+                }
+            }
+
+            persona.genes.SetXenotype(ShipCorePersonaDefOf.ShipCorePersonaXenotype);
+            persona.genes.hybrid = false;
+            RemoveGenes(persona.genes.Xenogenes, persona.genes);
+            RemoveGenes(persona.genes.Endogenes, persona.genes);
+
+            if (restoreLook)
+            {
+                persona.story.HairColor = hair;
+                persona.story.SkinColorBase = skinBase;
+                persona.story.skinColorOverride = skinOverride;
+                if (body != null)
+                    persona.story.bodyType = body;
+                if (head != null)
+                    persona.story.headType = head;
+                if (hairDef != null)
+                    persona.story.hairDef = hairDef;
+                persona.story.furDef = fur;
+                if (persona.style != null)
+                    persona.style.beardDef = beard;
+                persona.Drawer?.renderer?.SetAllGraphicsDirty();
+            }
+
+            if (skillDefs == null)
+                return;
+
+            for (int i = 0; i < skillDefs.Count; i++)
+            {
+                SkillRecord skill = persona.skills.GetSkill(skillDefs[i]);
+                if (skill != null)
+                    skill.passion = passions[i];
+            }
+        }
+
+        private static bool AlreadyCorePersona(Pawn persona)
+        {
+            Pawn_GeneTracker genes = persona.genes;
+            return genes.Xenotype == ShipCorePersonaDefOf.ShipCorePersonaXenotype
+                && genes.xenotypeName.NullOrEmpty()
+                && genes.iconDef == null
+                && !genes.hybrid
+                && genes.Xenogenes.Count == 0
+                && genes.Endogenes.Count == 0;
+        }
+
+        private static void RemoveGenes(List<Gene> genes, Pawn_GeneTracker tracker)
+        {
+            if (genes == null || genes.Count == 0)
+                return;
+
+            List<Gene> copy = genes.ToList();
+            for (int i = 0; i < copy.Count; i++)
+                tracker.RemoveGene(copy[i]);
         }
 
         public static void EnsureIdentity(Pawn persona)

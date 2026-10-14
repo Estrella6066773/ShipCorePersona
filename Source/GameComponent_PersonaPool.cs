@@ -62,6 +62,17 @@ namespace ShipCorePersona
         }
 
         /// <summary>
+        /// 读档走完之后，把已经在档里的飞船主脑收成核心人格。
+        /// 此时基因追踪器的 PostLoadInit 已经结束，空的异种人引用也已经被原版写成基线人，这里再改不会被那一步盖回去。
+        /// 地图上的、专属人物池里的、以及还留在飞船电脑核心容器里的，都从这里走一遍。飞船电脑核心放上地图时，CompShipCorePersona.PostSpawnSetup 还会再走一次。
+        /// </summary>
+        public override void LoadedGame()
+        {
+            base.LoadedGame();
+            EnsureKnownXenotypes();
+        }
+
+        /// <summary>
         /// 飞船主脑被删掉之后，别人身上还指着她。读档时这些引用对不上，心情和关系会报错。
         /// 只清掉已经对不上的引用。死人还在存档里的关系留下。
         /// </summary>
@@ -386,6 +397,66 @@ namespace ShipCorePersona
                 mindIds.RemoveAt(mindIds.Count - 1);
             while (buildingIds.Count > pawns.Count)
                 buildingIds.RemoveAt(buildingIds.Count - 1);
+        }
+
+        /// <summary>
+        /// 读档后扫一遍还能找到的飞船主脑。人物池、地图、商队和装箱的飞船电脑核心各走一次。
+        /// 已经是核心人格且基因为空时，EnsureXenotype 直接返回。
+        /// </summary>
+        private void EnsureKnownXenotypes()
+        {
+            if (pawns != null)
+            {
+                for (int i = 0; i < pawns.Count; i++)
+                    PersonaAppearance.EnsureXenotype(pawns[i]);
+            }
+
+            if (Find.Maps != null)
+            {
+                foreach (Map map in Find.Maps)
+                    EnsureXenotypesOnMap(map);
+            }
+
+            if (Find.WorldObjects?.Caravans == null)
+                return;
+
+            foreach (Caravan caravan in Find.WorldObjects.Caravans)
+            {
+                foreach (Thing thing in caravan.AllThings)
+                    EnsureXenotypeOnThing(thing);
+            }
+        }
+
+        private static void EnsureXenotypesOnMap(Map map)
+        {
+            List<Pawn> all = map.mapPawns.AllPawns.ToList();
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (CorePersonaUtility.IsPersona(all[i]))
+                    PersonaAppearance.EnsureXenotype(all[i]);
+            }
+
+            ThingDef def = DefDatabase<ThingDef>.GetNamedSilentFail("Ship_ComputerCore");
+            if (def != null)
+            {
+                List<Thing> cores = map.listerThings.ThingsOfDef(def);
+                for (int i = 0; i < cores.Count; i++)
+                    EnsureXenotypeOnThing(cores[i]);
+            }
+
+            List<Thing> minified = map.listerThings.ThingsInGroup(ThingRequestGroup.MinifiedThing);
+            for (int i = 0; i < minified.Count; i++)
+                EnsureXenotypeOnThing(minified[i]);
+        }
+
+        private static void EnsureXenotypeOnThing(Thing thing)
+        {
+            if (thing is MinifiedThing mini)
+                thing = mini.InnerThing;
+
+            CompShipCorePersona comp = thing?.TryGetComp<CompShipCorePersona>();
+            if (comp?.Persona != null)
+                PersonaAppearance.EnsureXenotype(comp.Persona);
         }
 
         private static bool BuildingAlive(int thingId)
